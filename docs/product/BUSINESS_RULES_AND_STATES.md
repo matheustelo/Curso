@@ -266,7 +266,8 @@ Dois escopos distintos (não confundir):
   a máquina do Tenant (§1).
 
 Estados canônicos (alinhados ao vocabulário de gateways): `trialing | active | past_due | canceled |
-expired`. (O DATA_MODEL declara `status text` genérico; padronizar conforme abaixo — ver Dependências.)
+expired`. **Resolvido pela coordenação:** padronizado no [DATA_MODEL §6.0](../DATA_MODEL.md) (vocabulário
+canônico de `status`) e em [ADR-0013](../adr/0013-product-data-model-extensions.md).
 
 ### 6.1 Diagrama
 

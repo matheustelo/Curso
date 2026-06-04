@@ -406,4 +406,8 @@ Pontos que cruzam com outros agentes/documentos e precisam de alinhamento:
 
 6. **Consentimento/LGPD:** depende da camada de consent management (cookie banner) definida pelo agente de Compliance — o tracking client-side só dispara após consentimento. Confirmar fluxo.
 
-7. **`packages/analytics` (port):** é uma nova dependência arquitetural. Sugiro registrar um ADR ("Tracking via port AnalyticsProvider + PostHog group analytics por tenant") alinhado ao ADR-0012, conforme checklist do CLAUDE.md para novas decisões arquiteturais.
+7. **`packages/analytics` (port):** é uma nova dependência arquitetural. **Resolvido pela coordenação:**
+   registrado em [ADR-0014](../adr/0014-analytics-provider-tracking-plan.md) — port `AnalyticsProvider`
+   (impl PostHog, group analytics por tenant/course) + **tracking plan como schemas Zod em
+   `packages/contracts`**. Heartbeats são **agregados** (não enviados crus ao PostHog); progresso/anti-seek
+   é fonte de verdade no banco (`lesson_progress.real_watched_seconds`).

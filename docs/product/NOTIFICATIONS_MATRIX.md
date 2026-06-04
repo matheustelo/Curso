@@ -191,11 +191,11 @@ identificação do tenant e (em marketing) link de descadastro; transacional nã
 
 ## Dependências e pontos para o coordenador
 
-1. **Preferências/opt-out:** o DATA_MODEL não tem tabela de preferências de notificação por usuário.
-   Recomendo `notification_preferences(user_id, channel, category, enabled)` para honrar opt-out de P2/P3
-   sem afetar P0/P1 (decisão de modelagem/migration).
-2. **Central de notificações in-app:** sem tabela hoje. Sugiro `notifications(id,user_id,type,payload,
-   read_at,created_at)` no data plane (escopo tenant).
+1. **Preferências/opt-out:** **Resolvido pela coordenação (MVP):** `notification_preferences(user_id,
+   channel, category, enabled)` adicionada em [DATA_MODEL §6.9](../DATA_MODEL.md) — honra opt-out de P2/P3
+   sem afetar P0/P1. Canais MVP = `in_app | email`; push = F2.
+2. **Central de notificações in-app:** **Resolvido (MVP):** `notifications(id,user_id,type,payload,
+   read_at,created_at)` no data plane ([DATA_MODEL §6.9](../DATA_MODEL.md)).
 3. **Push (F2):** confirmar provedor (Web Push nativo vs OneSignal/Novu, citado no PRD §3.10) e armazenamento
    de subscriptions/tokens.
 4. **Aviso de impersonação ao tenant:** decidir se OW/AD são notificados quando SA impersona

@@ -19,6 +19,7 @@ Este repositório contém, neste momento, a **especificação completa do produt
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | **Roadmap MoSCoW** — MVP → Fase 2 → Fase 3, com escopo de cada fase. |
 | [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) | Pontos residuais a validar (ex.: custo de egress BR, PoC de auth). |
 | [`docs/adr/`](docs/adr/) | **Architecture Decision Records** — cada decisão-chave registrada com contexto, opções e justificativa. |
+| [`docs/product/`](docs/product/README.md) | **Especificação detalhada de produto** — jornadas, flows, IA, UX de aprendizado, user stories, regras de negócio/estados, RBAC, notificações, monetização, analytics e NFRs. Comece pelo [README de produto](docs/product/README.md). |
 | [`CLAUDE.md`](CLAUDE.md) | **Guia para desenvolvimento guiado por IA** — convenções, camadas, regra de escopo por tenant. |
 
 ## 🎯 Decisões-chave (resumo)

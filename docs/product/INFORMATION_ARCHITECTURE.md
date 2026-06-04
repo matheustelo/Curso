@@ -448,8 +448,8 @@ Plataforma / Super-Admin
 
 ## Dependências e pontos para o coordenador
 
-1. **Host do Super-Admin (`admin.app.com`):** o ARCHITECTURE.md cita subdomínios de tenant mas não fixa o host do control plane. Proposta: host dedicado. Confirmar (impacta DNS, cookies/sessão e isolamento).
-2. **Prefixos `/app`, `/manage`, `/affiliate`:** convenção proposta aqui (não definida nos docs). Validar com engenharia (middleware Next.js de roteamento por área + RBAC).
+1. **Host do Super-Admin (`admin.app.com`):** o ARCHITECTURE.md cita subdomínios de tenant mas não fixa o host do control plane. Proposta: host dedicado. **Coordenação: marcado como PROPOSTA A VALIDAR COM ENGENHARIA** (DNS, cookies/sessão, isolamento) — ver [OPEN_QUESTIONS #23](../OPEN_QUESTIONS.md).
+2. **Prefixos `/app`, `/manage`, `/affiliate`:** convenção proposta aqui (não definida nos docs). **PROPOSTA A VALIDAR COM ENGENHARIA** (middleware Next.js de roteamento por área + RBAC) — [OPEN_QUESTIONS #23](../OPEN_QUESTIONS.md).
 3. **Separação Instrutor × Admin no menu (§4.2/4.3):** o RBAC tem os papéis, mas a fronteira exata de telas visíveis ao instrutor (ex.: vê financeiro? só dos próprios cursos?) precisa de decisão de produto.
 4. **Owner × Admin:** apenas o `owner` vê billing do SaaS e pagamentos — confirmar se há mais de um owner e regras de transferência de propriedade.
 5. **Domínio próprio [F2] e cookies:** sessão/Better-Auth precisa funcionar tanto em `{slug}.app.com` quanto em `custom_domain` — definir estratégia de cookie/domínio.

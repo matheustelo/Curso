@@ -708,6 +708,12 @@ Pontos que **cruzam** com outros documentos/superfícies e precisam de decisão 
   (idealmente schema Zod em `packages/contracts` para os payloads de eventos — DRY back/front).
 
 ### Modelo de dados (lacunas a resolver — cruza com DATA_MODEL.md)
+
+> **Resolvido pela coordenação:** todas as lacunas abaixo foram endereçadas em
+> [DATA_MODEL §6](../DATA_MODEL.md) e [ADR-0013](../adr/0013-product-data-model-extensions.md)
+> (comentários/moderação §6.3, anti-seek §6.2, gamificação §6.5, quiz §6.4, milestones §6.6). A lista
+> permanece como rastreabilidade dos requisitos consumidos.
+
 - **Comentários:** o modelo atual (`lesson_comments`) **não tem** campos para: status de **resolvido**,
   flag de **oculto/moderação**, **denúncias**, **curtidas**. Sugiro adicionar:
   `lesson_comments.resolved_at`, `hidden_at`, `hidden_by`; tabelas `comment_likes(comment_id, user_id)`

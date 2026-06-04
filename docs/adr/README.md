@@ -18,6 +18,8 @@ Michael Nygard.
 | [0010](0010-payments-br.md) | Pagamentos: Pagar.me + Asaas (BR) | Aceito | 85% |
 | [0011](0011-queue-pgboss.md) | Filas: pg-boss | Aceito | 82% |
 | [0012](0012-supporting-platform.md) | Plataforma de apoio (R2/Resend/PostHog/OTel) | Aceito | 85% |
+| [0013](0013-product-data-model-extensions.md) | Extensões do modelo de dados dirigidas por produto | Aceito | 85% |
+| [0014](0014-analytics-provider-tracking-plan.md) | Port `AnalyticsProvider` + tracking plan em contracts | Aceito | 84% |
 
 ## Como adicionar um ADR
 1. Copie o formato de um ADR existente. 2. Numere sequencialmente. 3. Referencie ADRs que ele
