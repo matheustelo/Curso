@@ -242,6 +242,30 @@
 | `saas_invoice_payment_failed` | S | Falha de cobrança (risco de churn) | `tenant_id`, `invoice_id`, `attempt`, `amount_cents` |
 | `saas_quota_threshold_reached` | S | Tenant atinge 80/100% de quota (alunos/storage) | `tenant_id`, `quota_type` (`students`,`storage`,`feature`), `usage_pct` |
 
+### 3.13 Aulas ao vivo [F2]
+
+> Ver [LIVE_CLASSES.md §13](LIVE_CLASSES.md) e [ADR-0015](../adr/0015-live-classes-interactive.md). Todos os
+> eventos carregam `tenant_id` (Regra nº1); os de consequência são **server-side (S)**; schemas Zod em
+> `packages/contracts` (DRY, port `AnalyticsProvider` — ADR-0014). **Sem PII** no payload (sem conteúdo de
+> chat, sem e-mail/tokens).
+
+| Evento | Lado | Quando dispara | Propriedades específicas |
+|--------|------|----------------|--------------------------|
+| `live_session_scheduled` | S | sessão agendada | `live_session_id`, `lesson_id`, `course_id`, `scheduled_start_at`, `mode` |
+| `live_session_started` | S | `room_started` | `live_session_id`, `host_user_id` |
+| `live_session_ended` | S | `room_finished` | `live_session_id`, `duration_sec`, `peak_participants` |
+| `live_participant_joined` | S | `participant_joined` | `live_session_id`, `user_role`, `is_host` |
+| `live_participant_left` | S | `participant_left` | `live_session_id`, `attended_sec` |
+| `live_hand_raised` | C | aluno levanta a mão | `live_session_id` |
+| `live_question_asked` | S | pergunta enviada (Q&A) | `live_session_id` |
+| `live_chat_message_sent` | S | mensagem persistida | `live_session_id` (sem conteúdo/PII) |
+| `live_recording_ingest_started` | S | job de reingestão inicia | `live_session_id` |
+| `live_replay_ready` | S | `recording_status →ready` | `live_session_id`, `lesson_id`, `video_guid` |
+| `live_recording_failed` | S | `recording_status →failed` | `live_session_id`, `error_code` |
+
+> **KPIs derivados:** taxa de comparecimento (matriculados convidados → presentes), pico de concorrência,
+> duração média, % de conclusão via replay vs presença, custo por participante-minuto (FinOps).
+
 ---
 
 ## 4. Catálogo de métricas / KPIs (fórmulas)

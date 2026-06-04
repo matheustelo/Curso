@@ -31,6 +31,7 @@ Filtro de qualidade de toda decisão: **SOLID/DRY/Clean Code** e a **Regra nº1 
 | 10 | [ANALYTICS_AND_DASHBOARDS.md](ANALYTICS_AND_DASHBOARDS.md) | Tracking plan (PostHog), catálogo de eventos/KPIs, dashboards por papel. | Reconciliado |
 | 11 | [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) | NFRs: performance, segurança, LGPD, a11y (WCAG AA), i18n, confiabilidade. | Reconciliado |
 | 12 | [AUTHORING_UX.md](AUTHORING_UX.md) | UX do Estúdio (autoria): cursos/aulas, editor por tipo, drip, quiz, publicação e **toggles de autoria**. | Reconciliado |
+| 13 | [LIVE_CLASSES.md](LIVE_CLASSES.md) | Aulas ao vivo interativas (sala WebRTC, LiveKit) + gravação→VOD; RBAC, notificações, quotas, analytics, NFR e modelo de dados da feature. **[F2]** | Reconciliado (feature F2 — ver ADR-0015) |
 
 ### Ordem de leitura recomendada
 1. **Visão** → PRD → USER_JOURNEYS → USER_FLOWS.
@@ -38,7 +39,8 @@ Filtro de qualidade de toda decisão: **SOLID/DRY/Clean Code** e a **Regra nº1 
 3. **Comportamento** → BUSINESS_RULES_AND_STATES → LEARNING_EXPERIENCE_UX → NOTIFICATIONS_MATRIX.
 4. **Negócio/dados** → MONETIZATION → ANALYTICS_AND_DASHBOARDS → [DATA_MODEL §6](../DATA_MODEL.md).
 5. **Qualidade/execução** → NON_FUNCTIONAL_REQUIREMENTS → USER_STORIES → ROADMAP.
-6. **Decisões** → [ADRs](../adr/) (em especial 0013, 0014) → OPEN_QUESTIONS.
+6. **Decisões** → [ADRs](../adr/) (em especial 0013, 0014, 0015) → OPEN_QUESTIONS.
+7. **Feature F2 (aulas ao vivo)** → [LIVE_CLASSES.md](LIVE_CLASSES.md) (lê após RBAC/NOTIFICATIONS/MONETIZATION/ANALYTICS/NFR/BUSINESS_RULES, pois estende todos eles) + ADR-0015.
 
 ---
 
@@ -138,6 +140,7 @@ RBAC, USER_STORIES, BUSINESS_RULES) — **sem divergência**.
 | 24 | Política de retenção LGPD (prazos) | Requisito definido; números pendentes de validação jurídica. | ⏳ Jurídico |
 | 25 | Recipient da plataforma vs tenant (Pagar.me) | Plataforma em `platform.platform_payment_recipients`; produtor/afiliado cifrados no data plane (§6.8/6.11). | ✅ Resolvido |
 | 26 | Onboarding de pagamentos do tenant (recipient/KYC) | Passo de "ativar pagamentos" pós-onboarding (não bloqueia provisionamento); sem recipient válido → checkout indisponível. | ✅ Resolvido |
+| 27 | Aula ao vivo: embed (Zoom/YouTube) × sala WebRTC nativa interativa | Evoluída para **sala WebRTC nativa interativa com gravação→VOD (F2)** atrás da port `LiveProvider` ([ADR-0015](../adr/0015-live-classes-interactive.md), [LIVE_CLASSES.md](LIVE_CLASSES.md)); embed simples permanece como degradação/alternativa. Live = **F2**. Keys LiveKit por tenant cifradas no control plane (`platform.tenants.live_keys_encrypted`); 1 projeto LiveKit por tenant. Sem Redis (ADR-0011 intacto). Valores de quota = stakeholder (OPEN_QUESTIONS #10). | ✅ Reconciliado / ⏳ valores de quota |
 
 **Legenda:** ✅ resolvido pela coordenação · ⏳ aguarda stakeholder/engenharia/jurídico (não bloqueia MVP).
 

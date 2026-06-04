@@ -148,7 +148,13 @@ Legenda destinatários: **ST** Aluno · **IN** Instrutor · **OW/AD** Owner/Admi
 | Carrinho abandonado (F2) | ✅ | — | — | ST/lead | Checkout iniciado sem `paid` | P3 | `abandoned_cart` · `{course_title,resume_checkout_url,coupon?}` |
 | Conquista/badge (F2 gamificação) | — | ✅ | ✅ | ST | Badge concedido | P3 | `badge_earned` · `{badge_name,points}` |
 | Resumo semanal do instrutor | ✅ | ✅ | — | IN, OW/AD | Agendado (semanal) | P3 | `weekly_digest` · `{sales,enrollments,completion,top_course}` |
-| Live agendada / lembrete (F2) | ✅ | ✅ | ✅ | ST | Evento de live criado / T-1h | P2 | `live_reminder` · `{title,when,join_url}` |
+| Aula ao vivo agendada (F2) | ✅ | ✅ | — | ST (matriculados) | `live_sessions →scheduled` | P2 | `live_scheduled` · `{course_title,live_title,start_at,add_to_calendar_url}` |
+| Lembrete de live **24h** (F2) | ✅ | ✅ | ✅ | ST | T-24h da sessão | P2 | `live_reminder_24h` · `{live_title,start_at,join_url}` |
+| Lembrete de live **10 min** (F2) | ✅ | ✅ | ✅ | ST | T-10min | P2 | `live_reminder_10m` · `{live_title,join_url}` |
+| Live **AO VIVO agora** (F2) | — | ✅ | ✅ | ST | `live_sessions →live` | P1 | `live_started` · `{live_title,join_url}` |
+| Live reagendada/cancelada (F2) | ✅ | ✅ | — | ST | `→rescheduled/canceled` | P1 | `live_rescheduled`/`live_canceled` · `{live_title,new_start_at?}` |
+| Live **replay disponível** (F2) | ✅ | ✅ | ✅ | ST | `recording_status →ready` | P2 | `live_replay_ready` · `{lesson_title,course_title,lesson_url}` |
+| Live falha na gravação (F2) | ✅ | ✅ | — | IN, OW/AD | `recording_status →failed` | P1 | `live_recording_failed` · `{live_title,error,retry_url}` |
 | Recomendação de curso (F3) | ✅ | ✅ | — | ST(opt-in) | Recomendador | P3 | `course_recommendation` · `{courses[]}` |
 
 ---
@@ -204,6 +210,9 @@ identificação do tenant e (em marketing) link de descadastro; transacional nã
    dunning alinhados com BUSINESS_RULES (dep. 5 de lá).
 6. **Catálogo canônico de `event types`:** consolidar os nomes de evento (transacionais + webhooks de
    saída) num enum único reutilizado em `packages/contracts` (DRY) — base para templates e webhooks.
+   **[F2] Aulas ao vivo** (ADR-0015) adiciona ao enum: `live_scheduled`, `live_reminder_24h`,
+   `live_reminder_10m`, `live_started`, `live_rescheduled`, `live_canceled`, `live_replay_ready`,
+   `live_recording_failed` — ver [LIVE_CLASSES.md §11](LIVE_CLASSES.md).
 7. **Throttling/digest:** definir agrupamento de P2/P3 (ex.: resumo diário de comentários) para evitar
    ruído e custo de e-mail.
 8. **i18n de templates:** confirmar que o conjunto inicial é PT-BR com arquitetura pronta para ES/EN

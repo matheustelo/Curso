@@ -56,6 +56,10 @@ bloqueiam** o início da implementação, mas precisam ser validados/decididos d
 | 25 | **Stack de consentimento (CMP)** | CMP próprio vs terceiro — pendente; gating de PostHog/Meta/GA4 depende disso | Produto/Eng |
 | 26 | **UX de Autoria/Instrutor** (toggles: conclusão manual, ligar/desligar comentários, gabarito, aulas opcionais, política de tentativas) | ✅ Resolvido — [docs/product/AUTHORING_UX.md](product/AUTHORING_UX.md) (toggles §8; campos a consolidar no DATA_MODEL §6) | Produto/UX |
 | 27 | **Central de preferências de notificação no MVP** | Adotado no MVP (in-app + e-mail; push F2) — modelado em `notification_preferences` | Produto |
+| 28 | **Aulas ao vivo: fase e valores de quota** ([LIVE_CLASSES.md](product/LIVE_CLASSES.md), [ADR-0015](adr/0015-live-classes-interactive.md)) | Confirmado **F2**; estrutura de quota em `platform_plans.limits` (`live_concurrent_participants`, `live_hours_month`, feature `live_classes`); **valores numéricos pendentes** — alinhar com #10 | Comercial |
+| 29 | **LGPD da gravação de live** (consentimento explícito de captura de áudio/vídeo do aluno + base legal; banner "esta aula está sendo gravada") + **deleção** da gravação (R2/Bunny + linhas `live_*`) no direito ao esquecimento | Requisito definido (banner de gravação visível a todos); base legal/prazos pendentes — alinhar com #24 | Jurídico |
+| 30 | **Region pinning / residência de dados BR do LiveKit** | A validar com o provedor (PoP/região no BR; self-host regional é o plano de contingência — ADR-0015 Riscos) | Engenharia/Provedor |
+| 31 | **Calibração de custo de live** (participante-minuto + recording-minuto + egress bandwidth do provedor vs margem) e **política de overage** | Quotas duras de concorrência + soft cap de horas/mês + alertas; calibrar contra custo real do provedor (mesmo risco do egress Bunny, #1) | Comercial/FinOps |
 
 ---
 

@@ -470,6 +470,29 @@ Aqui detalhamos **como aparece para o usuário** e os direitos do titular sob a 
 
 ---
 
+## 9-bis. Aulas ao vivo (sala WebRTC) [F2]
+
+> Tela **T-LIVE** (parente de T4 Player). Origem em [LIVE_CLASSES.md §14](LIVE_CLASSES.md) e
+> [ADR-0015](../adr/0015-live-classes-interactive.md). NFR-LIVE-06 reusa NFR-PERF-20.
+
+| ID | Métrica | Meta (p75/p95) | Limite "falha" |
+|----|---------|----------------|----------------|
+| **NFR-LIVE-01** | **Join-to-media** (clique "entrar" → 1º frame remoto; inclui validação de entitlement + emissão de token) | ≤ 3,0 s (p75) | > 6,0 s |
+| **NFR-LIVE-02** | Latência da API de **emissão de token de sala** (backend, p95) | ≤ 300 ms | > 800 ms |
+| **NFR-LIVE-03** | **Latência de mídia** ponta-a-ponta (glass-to-glass) WebRTC | ≤ 400 ms típico | > 1 s sustentado |
+| **NFR-LIVE-04** | **Latência de chat** (envio → entrega aos demais) | ≤ 500 ms (p95) | > 2 s |
+| **NFR-LIVE-05** | **Reconexão automática** após queda transitória (ICE restart) | ≤ 5 s para restabelecer | > 15 s → estado "Erro" |
+| **NFR-LIVE-06** | **Webhook de entrada** (responder 200 + enfileirar) — reusa NFR-PERF-20 | ≤ 200 ms | > 500 ms |
+| **NFR-LIVE-07** | **Disponibilidade da sala** (uptime do serviço de tempo real, herdado do provedor) | ≥ 99,9% | < 99,5% |
+| **NFR-LIVE-08** | **Tempo até replay pronto** (encerrar → `recording_status=ready`) | ≤ 2× duração (p75) | > 6× duração |
+| **NFR-LIVE-09** | **Concorrência por sala** (publicadores) | conforme plano (≤ 50 recomendado) | teto duro 100 conexões |
+| **NFR-LIVE-10** | **Buffering/qualidade adaptativa** (simulcast/SVC, queda graciosa em rede ruim) | adaptativo automático | congelamento > 3 s |
+
+- O fan-out de tempo real é da SFU do provedor (sem Redis — ADR-0011 intacto); presença vem de webhooks
+  server-side. Degradação graciosa (simulcast/SVC) para o aluno BR mid-tier (alinha §2).
+
+---
+
 ## 10. Matriz consolidada de metas (resumo executivo)
 
 | Área | Métrica-chave | Meta | Gate |
@@ -477,6 +500,8 @@ Aqui detalhamos **como aparece para o usuário** e os direitos do titular sob a 
 | Performance | LCP p75 (landing) | ≤ 2,0 s | RUM + Lighthouse CI |
 | Performance | INP p75 | ≤ 200 ms | RUM |
 | Performance | TTF-Play (player) | ≤ 2,0 s p75 | RUM custom |
+| Aulas ao vivo [F2] | Join-to-media (NFR-LIVE-01) | ≤ 3,0 s p75 | RUM custom |
+| Aulas ao vivo [F2] | Tempo até replay pronto (NFR-LIVE-08) | ≤ 2× duração p75 | monitor de pipeline |
 | Performance | API leitura p95 | ≤ 200 ms | k6/teste de carga |
 | Performance | Listas grandes | keyset, ≤ 100/página, virtualização | revisão + perf test |
 | Acessibilidade | Conformidade | WCAG 2.1 AA | axe-core CI (0 críticas) + auditoria manual |
@@ -511,6 +536,11 @@ Aqui detalhamos **como aparece para o usuário** e os direitos do titular sob a 
   idempotência de webhook (já em ARCHITECTURE §11).
 - **Segurança:** security review de PR; teste de rate limit; teste de expiração de token de vídeo; verificar
   que keys não vazam ao front (gate de revisão).
+- **Aulas ao vivo [F2] (NFR-LIVE-01..10):** RUM custom para join-to-media/latência de chat; monitor do
+  pipeline de gravação→VOD (tempo até `recording_status=ready`); uptime da sala via SLO do provedor;
+  teste de **isolamento cross-tenant** das tabelas `live_*` (gate de CI); teste de que o token de sala só é
+  emitido com entitlement + escopo de tenant e que as LiveKit keys não vazam ao front. Ver
+  [LIVE_CLASSES.md §14](LIVE_CLASSES.md).
 
 ---
 

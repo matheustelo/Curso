@@ -376,6 +376,60 @@ canônico de `status`) e em [ADR-0013](../adr/0013-product-data-model-extensions
 
 ---
 
+## 8-bis. Máquinas de estados — Aula ao vivo [F2]
+
+> Ver [LIVE_CLASSES.md §15](LIVE_CLASSES.md) e [ADR-0015](../adr/0015-live-classes-interactive.md). São
+> **duas máquinas separadas** em `live_sessions`: `status` (ciclo da sessão) e `recording_status` (fase de
+> VOD da gravação). A de gravação **espelha e governa** `lessons.video_status` e impacta `lesson_progress`.
+
+### 8-bis.1 `live_sessions.status` — ciclo da sessão
+
+Estados: `scheduled | lobby | live | ended | canceled`.
+
+```
+   scheduled ──(host abre sala / janela de abertura)──► lobby ──(room_started)──► live ──(room_finished/encerrar)──► ended
+        │                                                  │
+        └──────────────────(cancelar)──────────────────► canceled ◄───(cancelar)
+```
+
+| De | Para | Gatilho | Guarda / regra |
+|----|------|---------|----------------|
+| — | `scheduled` | `ScheduleLiveSession` | RBAC C6; agenda lembretes 24h/10min (pg-boss) |
+| `scheduled` | `lobby` | Sala aberta (janela de abertura, ex.: T-15min) | host válido |
+| `lobby`/`scheduled` | `live` | Webhook `room_started` | idempotente; emite `live_started` (§11 notif.) |
+| `live` | `ended` | Encerrar / webhook `room_finished` | fecha intervalos em `live_attendance`; dispara `stopRecording` se ativa |
+| `scheduled`/`lobby` | `canceled` | Cancelamento pelo host | reprograma/cancela lembretes; notifica matriculados |
+
+### 8-bis.2 `live_sessions.recording_status` — fase de VOD da gravação
+
+Estados: `none | recording | processing | ready | failed`.
+
+```
+   none ──(startRecording)──► recording ──(stopRecording/room_finished)──► processing ──(Bunny video ready)──► ready
+                                   │                                            │
+                                   └──────────(egress falha / ingest esgota retries)──────────► failed
+```
+
+| De | Para | Gatilho | Guarda / regra |
+|----|------|---------|----------------|
+| `none` | `recording` | `startRecording` (sala inicia / 1º participante) | `recording_enabled=true`; Egress→R2 |
+| `recording` | `processing` | Webhook `egress_ended` (HMAC OK) | enfileira `live.recording.ingest` (idempotente por `egress_id`) |
+| `processing` | `ready` | **Webhook Bunny "vídeo pronto"** | reusa máquina §3: `lessons.video_status: queued→processing→ready`; emite `live_replay_ready` |
+| `recording`/`processing` | `failed` | Egress falho / `ingest` esgota retries | notifica host (`live_recording_failed`); reingestão manual se master existe no R2 |
+
+### 8-bis.3 Regras e impacto em `lessons.video_status` / `lesson_progress`
+
+- A gravação **não cria** entidade de vídeo nova: o worker `live.recording.ingest` preenche
+  `lessons.video_guid` e dirige `lessons.video_status` pela **máquina §3** (DRY). Quando `recording_status`
+  chega a `ready`, a aula `type='live'` **amadurece** em VOD e passa a servir o replay com player/token/
+  anti-seek normais.
+- **Conclusão (`lesson_progress`):** default = concluir pelo replay (anti-seek normal, PRD §4.4). Toggle
+  `attendance_completes_lesson` (por aula): presença `attended_seconds ≥ duration×limiar` marca
+  `lesson_progress.status='completed'` (respeitando o vocabulário canônico).
+- Todas as transições rodam em `withTenant`; webhooks são idempotentes (`live_recording_events`).
+
+---
+
 ## 9. Mapa de impacto entre máquinas (orquestração de eventos)
 
 | Evento de origem | Pedido | Matrícula | Comissão | Certificado | Tenant |
@@ -389,6 +443,8 @@ canônico de `status`) e em [ADR-0013](../adr/0013-product-data-model-extensions
 | Inadimplência SaaS | — | (acesso bloqueado via tenant) | — | — | →`suspended` |
 | Curso 100% concluído + nota | — | — | — | →`issued` | — |
 | Vídeo `ready` (webhook Bunny) | — | — | — | — | — (libera publicação da aula) |
+| Live `egress_ended` (webhook provedor) [F2] | — | — | — | — | — (`live_sessions.recording_status: recording→processing`; enfileira `live.recording.ingest`) |
+| Live replay `ready` (Bunny) [F2] | — | — | — | — | — (`recording_status →ready`; `lessons.video_status →ready`; replay disponível; notifica `live_replay_ready`) |
 
 > Implementação: um event/orchestration layer (ports + use-cases) consome webhooks idempotentes e
 > aplica as transições. Jobs via `JobQueue` carregam `tenantId`.

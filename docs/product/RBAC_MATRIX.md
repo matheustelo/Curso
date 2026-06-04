@@ -234,6 +234,20 @@
 | Gerar/rotacionar API keys do tenant (F2) | 🔶 | ✅ | 🔶 | ❌ | ❌ | ❌ | C4 + C9 |
 | Receber webhooks de entrada (sistema) | n/a | n/a | n/a | n/a | n/a | n/a | Sem ator humano; HMAC + idempotência |
 
+### 3.15 Aulas ao vivo [F2]
+
+> Ver [LIVE_CLASSES.md §10](LIVE_CLASSES.md) e [ADR-0015](../adr/0015-live-classes-interactive.md).
+
+| Ação / Recurso | SA | OW | AD | IN | AF | ST | Obs |
+|----------------|----|----|----|----|----|----|-----|
+| Agendar/editar aula ao vivo | 🔶 | ✅ | ✅ | 🔶 | ❌ | ❌ | C6 (IN só nos seus cursos) |
+| Iniciar/encerrar sala (host) | 🔶 | ✅ | ✅ | 🔶 | ❌ | ❌ | C6 |
+| Moderar sala (mutar/remover/banir) | 🔶 | ✅ | ✅ | 🔶 | ❌ | ❌ | C6 + `audit_log` (banir) |
+| Controlar gravação (rec/stop) | 🔶 | ✅ | ✅ | 🔶 | ❌ | ❌ | C6 |
+| Entrar na sala e publicar (aluno) | ❌ | 🔶 | 🔶 | 🔶 | ❌ | 🔶 | C8-live (entitlement + sessão ativa) |
+| Assistir replay (VOD) | ❌ | 🔶 | 🔶 | 🔶 | ❌ | ✅ | C8 (entitlement — fluxo Bunny existente) |
+| Ver/gerir LiveKit keys do tenant | ❌ | 🔶 | ❌ | ❌ | ❌ | ❌ | C9 (keys nunca no front) |
+
 ---
 
 ## 4. Condições (notas C1..Cn)
@@ -265,6 +279,11 @@
   global; permitido a métricas de engajamento dos próprios cursos).
 - **C14 — Deleção da própria conta:** todos podem solicitar; owner **não** pode autodeletar/anonimizar
   sem antes transferir a propriedade do tenant (evita tenant órfão).
+- **C8-live — Entrar em sala ao vivo = entitlement + sessão ativa [F2]:** o **token de sala** (LiveKit)
+  só é emitido pelo backend com `enrollment.active` (ou papel host), `live_sessions.status ∈ {lobby, live}`
+  e **quota de concorrência do plano** não estourada (valor injetado no `onRequest`, padrão take rate
+  ADR-0013). Escopo de tenant na sala (`t_<tenantId>__ls_<sessionId>`). Aluno suspenso/expirado ou em
+  `live_bans`: negado. Espelha C8 do VOD. Ver [LIVE_CLASSES.md §6/§10](LIVE_CLASSES.md).
 
 ---
 

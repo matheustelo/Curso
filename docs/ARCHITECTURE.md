@@ -107,6 +107,7 @@ Executado por um job no worker, com estado em `platform.provisioning_jobs`:
 3. Rodar **migrations** no schema (Drizzle migrator com `search_path`).
 4. **Seed** (papéis, admin do tenant, curso de exemplo).
 5. Criar **Bunny Video Library** do tenant e guardar `library_id` + keys cifradas.
+5b. **[F2]** Provisionar **projeto/keys LiveKit** do tenant (1 projeto por tenant, análogo à Bunny Library) e guardar em `platform.tenants.live_keys_encrypted` (cifradas) — pode ser passo "ativar lives" pós-onboarding (não bloqueia provisionamento). Ver [ADR-0015](adr/0015-live-classes-interactive.md).
 6. Registrar roteamento + `status='active'` + **smoke test**.
 Idempotência: `IF NOT EXISTS`, migrations versionadas, retry com estado persistido.
 
@@ -160,7 +161,8 @@ apps/api/src/
 │  │  ├─ courses.module.ts                  # composeModule()
 │  │  └─ __tests__/
 │  ├─ enrollments/   ├─ payments/   ├─ video/   ├─ certificates/
-│  ├─ community/     ├─ affiliates/ └─ identity/ (provisionamento + super-admin)
+│  ├─ community/     ├─ affiliates/ ├─ identity/ (provisionamento + super-admin)
+│  └─ live/                                 # [F2] aulas ao vivo (port LiveProvider) — ADR-0015
 └─ shared/                       # ports/utilitários transversais
 ```
 
@@ -214,6 +216,11 @@ status. Idempotente.
 `lesson_progress`. Conclusão: ≥90% com checagem anti-seek.
 - **Anti-pirataria (faseado):** ver [ADR-0009](adr/0009-anti-piracy.md). `VideoProvider` é uma **port**
 abstrata (SOLID) — permite trocar/estender (player próprio, DRM Enterprise) sem tocar nos use-cases.
+- **Aulas ao vivo [F2]:** módulo `live/` (3 camadas) atrás da **port `LiveProvider`** (impl LiveKit),
+espelhando `VideoProvider`. A **gravação reentra no pipeline VOD da Bunny** (Egress composite → Cloudflare
+R2 → Bunny fetch-from-URL) virando uma aula gravada normal — sem duplicar o domínio de vídeo. Token de sala
+emitido só pelo backend (entitlement + escopo de tenant). Ver [ADR-0015](adr/0015-live-classes-interactive.md)
+e [docs/product/LIVE_CLASSES.md](product/LIVE_CLASSES.md).
 
 ---
 
@@ -234,8 +241,13 @@ assinatura ativa/suspende o tenant. Domínio **separado** do checkout dos alunos
 ## 9. Background jobs / filas
 
 - **pg-boss** (fila no próprio PostgreSQL — sem Redis, alinhado a "leve"). Casos: e-mails,
-certificados (Puppeteer/pdfme), processamento de webhooks (Bunny/pagamento), transcrição/IA,
-reconciliação. Volume moderado (Bunny faz o trabalho pesado de mídia).
+certificados (Puppeteer/pdfme), processamento de webhooks (Bunny/pagamento/**live**), transcrição/IA,
+reconciliação, **lembretes de live (24h/10min)** e **`live.recording.ingest`** (reingestão da gravação
+no Bunny — [F2], ADR-0015). Volume moderado (Bunny/SFU fazem o trabalho pesado de mídia).
+- **Webhooks de live [F2]:** endpoint Fastify dedicado **`/webhooks/live`** verifica HMAC (bytes brutos,
+tempo constante) → responde 200 → enfileira (idempotente por `egress_id`/`event_id` em `live_recording_events`,
+espelhando `payment_events`). O ADR-0011 (sem Redis) permanece válido: o fan-out de tempo real é da SFU
+(data channel), não nosso.
 - **Interface `JobQueue` (port):** troca para BullMQ/Redis no futuro sem tocar nos use-cases (**DIP**).
 - **Multitenant nas filas:** todo job carrega `tenantId` no payload; o worker resolve o schema igual ao
 request HTTP (`withTenant`).

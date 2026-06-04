@@ -71,7 +71,7 @@ Pix/boleto/cartão, podendo usar **afiliados e split** de pagamento.
 - **[MVP]** Tipos de conteúdo: **vídeo (Bunny)**, **texto rico**, **PDF/anexos para download**.
 - **[MVP]** **Rascunho/publicação** de cursos e aulas (editar sem expor a alunos).
 - **[MVP]** **Drip / liberação programada** — por **data fixa** e por **dias após a matrícula**.
-- **[F2]** Tipos adicionais: **quiz como aula**, **aula ao vivo** (embed Zoom/YouTube Live), **áudio**.
+- **[F2]** Tipos adicionais: **quiz como aula**, **aula ao vivo** — evoluiu de embed simples (Zoom/YouTube Live) para **sala WebRTC nativa interativa com gravação→VOD** (câmera/áudio/chat/Q&A; gravação reentra no pipeline Bunny como replay) — ver [ADR-0015](adr/0015-live-classes-interactive.md) e [docs/product/LIVE_CLASSES.md](product/LIVE_CLASSES.md); o embed simples permanece como degradação/alternativa de baixo custo — **áudio**.
 - **[F2]** **Pré-requisitos / bloqueio sequencial** (liberar aula só após concluir a anterior).
 - **[F2]** **Biblioteca de mídia reutilizável** entre cursos.
 - **[F3]** Importação **SCORM/xAPI** (abre mercado corporativo/educacional).
@@ -107,7 +107,7 @@ mínima**, **tempo**, **embaralhamento**.
 ### 3.5 Comunidade e engajamento
 - **[MVP]** **Comentários por aula** (dúvidas no contexto).
 - **[F2]** **Fórum/feed** por curso ou por tópico; **grupos**.
-- **[F2]** **Lives nativas** (integração Zoom/embed) + calendário de eventos.
+- **[F2]** **Lives nativas** — **sala WebRTC nativa interativa com gravação→VOD** (LiveKit; câmera/áudio/chat/raise hand/Q&A; gravação vira aula gravada no Bunny) + calendário de eventos; ver [ADR-0015](adr/0015-live-classes-interactive.md) e [docs/product/LIVE_CLASSES.md](product/LIVE_CLASSES.md). Embed Zoom/YouTube permanece como degradação/alternativa.
 - **[F3]** Chat/DMs, segmentação de comunidade, resumo de feed por IA.
 
 ### 3.6 Gestão de alunos

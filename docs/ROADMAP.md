@@ -42,7 +42,7 @@ acompanhar_ — o mínimo para um tenant gerar receita.
 
 - **Order bump + upsell/downsell one-click + bundles + recuperação de carrinho.**
 - **Co-produção** (split entre produtores).
-- **Comunidade** (fórum/feed) + **lives** (Zoom/embed).
+- **Comunidade** (fórum/feed) + **Aulas ao vivo interativas (LiveKit) + gravação→VOD** (sala WebRTC nativa: câmera/áudio/chat/raise hand/Q&A; gravação reentra no pipeline Bunny como replay) — ver [ADR-0015](adr/0015-live-classes-interactive.md) e [docs/product/LIVE_CLASSES.md](product/LIVE_CLASSES.md). Embed Zoom/YouTube fica como degradação/alternativa.
 - **Gamificação** (pontos, badges, ranking).
 - **Provas** (tentativas/nota/tempo) + **gradebook**.
 - **Player próprio (Vidstack) + watermark dinâmico por aluno**; limite de sessões.

@@ -1,8 +1,15 @@
 # Modelo de Dados — Plataforma de Cursos SaaS Multitenant
 
-- **Versão:** 1.1 · **Data:** 2026-06-04
+- **Versão:** 1.2 · **Data:** 2026-06-04
 - **Modelo de isolamento:** schema-per-tenant (ver [ADR-0001](adr/0001-multitenancy-schema-per-tenant.md))
-- **Relacionados:** [ARCHITECTURE.md](ARCHITECTURE.md) · [PRD.md](PRD.md) · [docs/product/](product/README.md) · [ADR-0013](adr/0013-product-data-model-extensions.md) · [ADR-0014](adr/0014-analytics-provider-tracking-plan.md)
+- **Relacionados:** [ARCHITECTURE.md](ARCHITECTURE.md) · [PRD.md](PRD.md) · [docs/product/](product/README.md) · [ADR-0013](adr/0013-product-data-model-extensions.md) · [ADR-0014](adr/0014-analytics-provider-tracking-plan.md) · [ADR-0015](adr/0015-live-classes-interactive.md)
+
+> **Changelog v1.2 (coordenação de produto):** acrescentada a **§6.13 — Aulas ao vivo [F2]**
+> (tabelas `live_sessions`, `live_attendance`, `live_chat_messages`, `live_bans`, `live_recording_events`),
+> os status canônicos `live_sessions.status` e `live_sessions.recording_status` à §6.0, e a coluna
+> `platform.tenants.live_keys_encrypted` (keys do LiveKit por tenant). Renumerados os antigos §6.13 →
+> §6.14 (relacionamentos adicionais). Nada das versões anteriores foi removido. Decisão em
+> [ADR-0015](adr/0015-live-classes-interactive.md) e spec em [LIVE_CLASSES.md](product/LIVE_CLASSES.md).
 
 > **Changelog v1.1 (coordenação de produto):** acrescentada a **§6 — Extensões dirigidas por produto**
 > (comentários/moderação, anti-seek, gamificação, quiz, ofertas/order_items/bundles, afiliados/atribuição,
@@ -34,6 +41,7 @@ tenants(
   schema_name text,             -- "tenant_acme"
   bunny_library_id text,        -- Video Library do tenant
   bunny_keys_encrypted bytea,   -- AccessKey/token key cifradas (pgcrypto/KMS)
+  live_keys_encrypted bytea null, -- API key/secret do LiveKit cifradas (1 projeto LiveKit por tenant; F2 — ADR-0015)
   custom_domain text null,
   created_at, updated_at
 )
@@ -254,6 +262,8 @@ Onde o DATA_MODEL v1.0 usava `text` genérico, ficam padronizados (CHECK ou enum
 | `lesson_progress.status` | `not_started \| in_progress \| completed` | MVP |
 | `affiliate_commissions.status` | `pending \| paid \| reversed` | MVP |
 | `affiliates.status` | `pending \| active \| blocked` | MVP |
+| `live_sessions.status` | `scheduled \| lobby \| live \| ended \| canceled` | F2 |
+| `live_sessions.recording_status` | `none \| recording \| processing \| ready \| failed` | F2 |
 
 > O estado de inadimplência do **SaaS** (`past_due/grace`) é **derivado** de `platform_subscriptions.status`
 > (Stripe), **sem** nova coluna em `tenants.status` (MONETIZATION §A.5). Reembolso parcial **não** é estado
@@ -448,7 +458,95 @@ platform_payment_recipients(
   política de overage (MONETIZATION §A.4). **Não** introduz FK cross-schema: o uso do tenant é lido via
   `withTenant`; os limites, via control plane; a decisão é composta no use-case.
 
-### 6.13 Relacionamentos adicionais (texto)
+### 6.13 Aulas ao vivo [F2]
+
+> Spec completa em [LIVE_CLASSES.md §15](product/LIVE_CLASSES.md); decisão em
+> [ADR-0015](adr/0015-live-classes-interactive.md). Todas as tabelas vivem no **schema do tenant**, acessadas
+> via `withTenant`. **Nenhuma FK cruza schemas.** Cada tabela com dado de tenant exige **teste de isolamento
+> cross-tenant** (gate de CI, CLAUDE.md). A gravação **reusa** `lessons.video_guid`/`lessons.video_status` e
+> `lesson_progress` (anti-seek) — **sem** tabela nova de VOD (DRY). A aula ao vivo é uma `lessons.type='live'`
+> (valor já previsto em §2.2). As keys do LiveKit por tenant ficam em `platform.tenants.live_keys_encrypted`
+> (control plane), cifradas — **1 projeto LiveKit por tenant** (isolamento análogo à Video Library da Bunny).
+
+```sql
+live_sessions(
+  id uuid pk,
+  lesson_id uuid fk -> lessons,            -- aula type='live' (1 aula ↔ 1..N sessões)
+  course_id uuid fk -> courses,            -- desnormalizado p/ escopo/consulta (mesmo schema)
+  host_user_id uuid fk -> users,           -- instrutor host
+  title text,
+  mode text,                               -- interactive | host_mostly        (broadcast = F3)
+  scheduled_start_at timestamptz,
+  scheduled_end_at timestamptz null,
+  timezone text not null default 'America/Sao_Paulo',
+  started_at timestamptz null,             -- room_started
+  ended_at timestamptz null,               -- room_finished
+  status text not null default 'scheduled',
+    -- scheduled | lobby | live | ended | canceled  (vocabulário canônico §6.0)
+  recording_enabled boolean not null default true,
+  recording_status text not null default 'none',
+    -- none | recording | processing | ready | failed  (espelha lessons.video_status na fase de VOD)
+  recording_provider_ref text null,        -- egress_id do provedor (idempotência/observabilidade)
+  recording_master_key text null,          -- chave do MP4 master no R2 (<tenantId>/<sessionId>/...)
+  room_provider_ref text null,             -- nome/sid da sala no provedor
+  chat_locked boolean not null default false,
+  attendance_completes_lesson boolean not null default false, -- toggle (LIVE_CLASSES §8)
+  peak_participants int not null default 0,
+  created_at timestamptz, updated_at timestamptz, deleted_at timestamptz null
+)
+-- índices: (lesson_id), (course_id, scheduled_start_at), (status)
+
+live_attendance(
+  id uuid pk,
+  live_session_id uuid fk -> live_sessions,
+  user_id uuid fk -> users,
+  enrollment_id uuid fk -> enrollments null,   -- null p/ host/staff
+  role text,                                    -- host | participant
+  joined_at timestamptz not null,
+  left_at timestamptz null,                     -- fechado por participant_left/room_finished
+  created_at timestamptz
+)
+-- índices: (live_session_id), (user_id), (live_session_id, user_id)
+-- 1 linha por intervalo de presença (reconexão = novo intervalo); attended_seconds é derivado
+
+live_chat_messages(
+  id uuid pk,
+  live_session_id uuid fk -> live_sessions,
+  user_id uuid fk -> users,
+  body text,
+  kind text not null default 'chat',            -- chat | question (Q&A) | system
+  answered_at timestamptz null,                 -- Q&A: marcada como respondida pelo host
+  answered_by uuid null,                         -- fk -> users
+  hidden_at timestamptz null,                    -- moderação (espelha comment_* §6.3)
+  hidden_by uuid null,                           -- fk -> users
+  created_at timestamptz
+)
+-- índices: (live_session_id, created_at), (live_session_id, kind)
+-- chat efêmero usa o data channel do provedor; persistência aqui é p/ histórico/replay/moderação
+
+live_bans(
+  id uuid pk,
+  course_id uuid fk -> courses null,             -- ban por curso (todas as sessões) ...
+  live_session_id uuid fk -> live_sessions null, -- ... ou por sessão
+  user_id uuid fk -> users,
+  banned_by uuid fk -> users,
+  reason text null,
+  created_at timestamptz
+)
+-- a emissão de token de sala consulta live_bans (defense in depth)
+
+live_recording_events(                            -- idempotência de webhooks live (espelha payment_events)
+  id uuid pk,
+  provider text,                                  -- livekit (ou outro)
+  event_id text unique,                           -- egress_id/event id do provedor (dedup)
+  live_session_id uuid null,
+  payload jsonb,
+  processed_at timestamptz null,
+  created_at timestamptz
+)
+```
+
+### 6.14 Relacionamentos adicionais (texto)
 ```
 [ dentro de cada schema tenant_<slug> ]
 lesson_comments 1───* comment_likes ; lesson_comments 1───* comment_reports
@@ -458,6 +556,10 @@ orders 1───* order_items ; orders *───1 bundles (via order_items) ; 
 affiliates 1───* affiliate_clicks ; affiliates *───* courses (affiliate_course_commissions)
 users 1───* notifications ; users 1───* notification_preferences
 tenant 1───1 tenant_settings ; tenant 1───1 affiliate_program_settings
+lessons 1───* live_sessions *───1 users (host) ; live_sessions 1───* live_attendance *───1 users
+live_sessions 1───* live_chat_messages *───1 users ; live_sessions 1───* live_bans *───1 users
+live_sessions 1───* live_recording_events
 [ control plane ]
 platform.platform_payment_recipients (recipient da plataforma)
+platform.tenants.live_keys_encrypted (keys do LiveKit por tenant; sem FK cross-schema)
 ```

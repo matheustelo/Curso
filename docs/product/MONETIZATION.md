@@ -72,7 +72,10 @@ Legenda de fase: **[MVP]** disponível no lançamento · **[F2]** Fase 2 · **[F
 | **Provas avançadas + gradebook** | F2 | — | sim | sim | sim |
 | **Gamificação** | F2 | — | sim | sim | sim |
 | **Comunidade (comentários)** | MVP | sim | sim | sim | sim |
-| **Fórum/feed + lives** | F2 | — | sim | sim | sim |
+| **Fórum/feed** | F2 | — | sim | sim | sim |
+| **Aulas ao vivo interativas (`live_classes`)** | F2 | — | sim | sim | sim |
+| **— Participantes simultâneos/sala (`live_concurrent_participants`)** | F2 | — | a definir¹ | a definir¹ | negociado |
+| **— Horas de live/mês (`live_hours_month`)** | F2 | — | a definir¹ | a definir¹ | negociado |
 | **PWA + push** | F2 | — | sim | sim | sim |
 | **App mobile branded (lojas)** | F3 | — | — | add-on | sim |
 | **IA: transcrição/legenda + geração de quiz** | F2 | — | quota baixa | quota alta | ilimitado* |
@@ -91,7 +94,9 @@ Legenda de fase: **[MVP]** disponível no lançamento · **[F2]** Fase 2 · **[F
 
 \* "ilimitado" é soft (fair-use) com alertas de abuso; quotas duras técnicas (armazenamento/banda) sempre existem para conter custo de egress (ver risco de custo de mídia no PRD §7).
 
-> **Onde isso vive no modelo de dados:** `platform_plans.limits jsonb` já comporta `{ max_students, storage_gb, bandwidth_gb, max_courses, max_team, max_affiliates, features[], take_rate_bps }`. Cada quota numérica é um campo; cada feature booleana entra em `features[]`. Use **basis points (bps)** para take rate (ex.: `200` = 2,0%) para evitar float.
+¹ **Valores numéricos das quotas de live = pendentes do stakeholder** (alinhar [OPEN_QUESTIONS](../OPEN_QUESTIONS.md) #10 — tabela de planos). Estrutura proposta em [LIVE_CLASSES.md §12](LIVE_CLASSES.md); a estrutura já fica modelada em `platform_plans.limits`, faltando só os números. **Nota de overage:** participantes/concorrência = **hard block** ao atingir o teto (sala cheia); horas de live/mês = **soft cap** com alerta 80%/100% e CTA de upgrade (alinha §A.4). Custo de participante-minuto/recording do provedor é variável → calibrar quotas vs margem ([ADR-0015](../adr/0015-live-classes-interactive.md)).
+
+> **Onde isso vive no modelo de dados:** `platform_plans.limits jsonb` já comporta `{ max_students, storage_gb, bandwidth_gb, max_courses, max_team, max_affiliates, features[], take_rate_bps }` e **[F2]** as chaves de live `live_concurrent_participants`, `live_hours_month` (+ `live_recording_storage_gb` opcional) e a feature `live_classes` em `features[]`. Cada quota numérica é um campo; cada feature booleana entra em `features[]`. Use **basis points (bps)** para take rate (ex.: `200` = 2,0%) para evitar float. A quota de live é **injetada como valor no `onRequest`** (padrão take rate/ADR-0013) — o use-case não consulta `platform` diretamente (Regra nº1).
 
 ## A.3 Modelo de cobrança (mensal/anual/trial)
 
