@@ -30,6 +30,7 @@ Filtro de qualidade de toda decisão: **SOLID/DRY/Clean Code** e a **Regra nº1 
 | 9 | [MONETIZATION.md](MONETIZATION.md) | Pricing do SaaS (Stripe), checkout do aluno (Pagar.me/Asaas), cupons, afiliados, split, take rate. | Reconciliado |
 | 10 | [ANALYTICS_AND_DASHBOARDS.md](ANALYTICS_AND_DASHBOARDS.md) | Tracking plan (PostHog), catálogo de eventos/KPIs, dashboards por papel. | Reconciliado |
 | 11 | [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) | NFRs: performance, segurança, LGPD, a11y (WCAG AA), i18n, confiabilidade. | Reconciliado |
+| 12 | [AUTHORING_UX.md](AUTHORING_UX.md) | UX do Estúdio (autoria): cursos/aulas, editor por tipo, drip, quiz, publicação e **toggles de autoria**. | Reconciliado |
 
 ### Ordem de leitura recomendada
 1. **Visão** → PRD → USER_JOURNEYS → USER_FLOWS.
@@ -133,7 +134,7 @@ RBAC, USER_STORIES, BUSINESS_RULES) — **sem divergência**.
 | 20 | Verificação de e-mail | Recomendado obrigatória; gratuito acessível antes (#18 OQ). | ✅ Default / ⏳ confirmar |
 | 21 | Escopo do 2FA | Obrigatório SA (MVP) + Owner; recomendado Admin; opcional aluno. | ✅ Default / ⏳ confirmar |
 | 22 | Hosts/prefixos (`admin.app.com`, `/app`, `/manage`, `/affiliate`) | **Marcado como proposta a validar com engenharia** (DNS/cookies/middleware). | ⏳ Validar (eng) |
-| 23 | Doc de UX de Autoria/Instrutor (toggles) | **Lacuna registrada** — produzir doc dedicado depois (#26 OQ). | ⏳ A produzir |
+| 23 | Doc de UX de Autoria/Instrutor (toggles) | Produzido: [AUTHORING_UX.md](AUTHORING_UX.md) (toggles em §8; campos a confirmar no DATA_MODEL §6). | ✅ Resolvido |
 | 24 | Política de retenção LGPD (prazos) | Requisito definido; números pendentes de validação jurídica. | ⏳ Jurídico |
 | 25 | Recipient da plataforma vs tenant (Pagar.me) | Plataforma em `platform.platform_payment_recipients`; produtor/afiliado cifrados no data plane (§6.8/6.11). | ✅ Resolvido |
 | 26 | Onboarding de pagamentos do tenant (recipient/KYC) | Passo de "ativar pagamentos" pós-onboarding (não bloqueia provisionamento); sem recipient válido → checkout indisponível. | ✅ Resolvido |
@@ -156,8 +157,9 @@ Itens com **default seguro** já aplicado (podem seguir no MVP e ser revisados):
 ---
 
 ## 6. Lacunas de documentação a produzir (pós-coordenação)
-- **UX de Autoria/Instrutor** (Studio): toggles de conclusão manual de vídeo, ligar/desligar comentários,
-  exibir gabarito, aulas opcionais, política de tentativas/nota. Consumido por LEARNING_EXPERIENCE_UX.
+- ✅ **UX de Autoria/Instrutor** (Studio): produzido em [AUTHORING_UX.md](AUTHORING_UX.md) — toggles de
+  conclusão manual de vídeo, ligar/desligar comentários, exibir gabarito, aulas opcionais, política de
+  tentativas/nota (campos a consolidar no DATA_MODEL §6 com a coordenação).
 - **Wireframes** de telas críticas (Checkout, Player, Editor de curso, Console Super-Admin).
 - **Schemas Zod em `packages/contracts`** para os fluxos/eventos (tracking plan, DTOs) — fonte única.
 - **Tabela legal** de retenção/LGPD (`docs/legal/`).

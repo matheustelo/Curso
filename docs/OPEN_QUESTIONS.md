@@ -54,7 +54,7 @@ bloqueiam** o início da implementação, mas precisam ser validados/decididos d
 | 23 | **Hosts/prefixos** (`admin.app.com`, `/app`, `/manage`, `/affiliate`) | **Proposta a validar com engenharia** (DNS/cookies/middleware) | Engenharia |
 | 24 | **Política de retenção LGPD** (prazos por categoria + janela win-back antes do `DROP SCHEMA`) | Requisito definido; **números pendentes de validação jurídica** | Jurídico |
 | 25 | **Stack de consentimento (CMP)** | CMP próprio vs terceiro — pendente; gating de PostHog/Meta/GA4 depende disso | Produto/Eng |
-| 26 | **UX de Autoria/Instrutor** (toggles: conclusão manual, ligar/desligar comentários, gabarito, aulas opcionais, política de tentativas) | **Lacuna de documentação** — produzir doc dedicado depois | Produto/UX |
+| 26 | **UX de Autoria/Instrutor** (toggles: conclusão manual, ligar/desligar comentários, gabarito, aulas opcionais, política de tentativas) | ✅ Resolvido — [docs/product/AUTHORING_UX.md](product/AUTHORING_UX.md) (toggles §8; campos a consolidar no DATA_MODEL §6) | Produto/UX |
 | 27 | **Central de preferências de notificação no MVP** | Adotado no MVP (in-app + e-mail; push F2) — modelado em `notification_preferences` | Produto |
 
 ---
