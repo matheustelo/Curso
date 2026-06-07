@@ -1,8 +1,23 @@
 # Modelo de Dados — Plataforma de Cursos SaaS Multitenant
 
-- **Versão:** 1.2 · **Data:** 2026-06-04
+- **Versão:** 1.3 · **Data:** 2026-06-07
 - **Modelo de isolamento:** schema-per-tenant (ver [ADR-0001](adr/0001-multitenancy-schema-per-tenant.md))
 - **Relacionados:** [ARCHITECTURE.md](ARCHITECTURE.md) · [PRD.md](PRD.md) · [docs/product/](product/README.md) · [ADR-0013](adr/0013-product-data-model-extensions.md) · [ADR-0014](adr/0014-analytics-provider-tracking-plan.md) · [ADR-0015](adr/0015-live-classes-interactive.md)
+
+> **Changelog v1.3 (coordenação — integração dos docs de design/produto/ops/legal):** acrescentadas, como
+> **proposta rastreável a consolidar por migration + ADR** (nada removido), as seções: **§6.15 — Suporte ao
+> aluno** (`support_tickets`, `support_messages`, `kb_articles`), **§6.16 — Importação/Exportação**
+> (`import_jobs`, `import_rows`, `export_jobs`), **§6.17 — Vocabulário de `platform.audit_log.action`** (console
+> Super-Admin) e **§6.18 — Branding/white-label/domínio próprio** (novos campos em `tenant_settings` e
+> `platform.tenants`). Acrescidos à §6.0 os status `support_tickets.status` e os status de `import_jobs`/
+> `export_jobs`; novos campos em **§6.10** (`support_email`, `support_channel`, `support_widget_config`,
+> `favicon_url`, `logo_dark_url`, `email_reply_to`, `whitelabel_full`, `onboarding_state`). Origem:
+> [SUPPORT_DISCOVERY_SETTINGS](product/SUPPORT_DISCOVERY_SETTINGS.md), [DATA_IMPORT_EXPORT](product/DATA_IMPORT_EXPORT.md),
+> [SUPER_ADMIN_CONSOLE](product/SUPER_ADMIN_CONSOLE.md), [BRANDING_WHITELABEL](design/BRANDING_WHITELABEL.md).
+> **Toda tabela nova vive no schema do tenant, acessada via `withTenant`; nenhuma FK cruza schemas; cada uma
+> exige teste de isolamento cross-tenant (gate CI).** Decisões estruturais (provider de suporte, motor de busca
+> externo, migration de import/export) listadas em [OPEN_QUESTIONS](OPEN_QUESTIONS.md) #32–#40 — exigirão ADR ao
+> serem adotadas.
 
 > **Changelog v1.2 (coordenação de produto):** acrescentada a **§6.13 — Aulas ao vivo [F2]**
 > (tabelas `live_sessions`, `live_attendance`, `live_chat_messages`, `live_bans`, `live_recording_events`),
@@ -70,7 +85,7 @@ provisioning_jobs(              -- saga idempotente de onboarding
   idempotency_key text unique, attempts int, last_error text, updated_at
 )
 
-audit_log(                      -- ações sensíveis (impersonação, suspensão...)
+audit_log(                      -- ações sensíveis (impersonação, suspensão...); vocabulário de `action` em §6.17
   id uuid pk, actor_id uuid, actor_type text, tenant_id uuid null,
   action text, metadata jsonb, created_at
 )
@@ -264,6 +279,12 @@ Onde o DATA_MODEL v1.0 usava `text` genérico, ficam padronizados (CHECK ou enum
 | `affiliates.status` | `pending \| active \| blocked` | MVP |
 | `live_sessions.status` | `scheduled \| lobby \| live \| ended \| canceled` | F2 |
 | `live_sessions.recording_status` | `none \| recording \| processing \| ready \| failed` | F2 |
+| `support_tickets.status` (§6.15) | `open \| pending \| resolved \| closed` | MVP |
+| `kb_articles.status` (§6.15) | `draft \| published` | MVP |
+| `import_jobs.status` (§6.16) | `uploaded \| validating \| preview_ready \| committing \| partially_done \| done \| failed \| canceled` | MVP |
+| `import_rows.status` (§6.16) | `valid \| invalid \| created \| updated \| skipped \| error` | MVP |
+| `export_jobs.status` (§6.16) | `queued \| running \| ready \| expired \| failed` | MVP |
+| `custom_domain_status` (platform.tenants, §6.18) | `none \| pending \| verifying \| active \| failed` | F2 |
 
 > O estado de inadimplência do **SaaS** (`past_due/grace`) é **derivado** de `platform_subscriptions.status`
 > (Stripe), **sem** nova coluna em `tenants.status` (MONETIZATION §A.5). Reembolso parcial **não** é estado
@@ -424,9 +445,28 @@ tenant_settings(                                     -- 1 linha por tenant (data
   student_dunning_grace_days int not null default 7,          -- carência inadimplência do ALUNO
   affiliate_clearance_days int not null default 14,           -- garantia antes de pending→paid
   public_catalog_enabled boolean not null default true,
+  -- v1.3 (proposta): suporte ao aluno (SUPPORT_DISCOVERY_SETTINGS §1) — fonte da coluna do placeholder {support_email}
+  support_email text null,                                    -- suporte ao aluno; null → fallback e-mail do owner
+  support_channel text not null default 'native',             -- native | widget (Crisp/Intercom em F2 via SupportProvider)
+  support_widget_config jsonb null,                           -- config do widget externo (F2)
+  -- v1.3 (proposta): branding/white-label (BRANDING_WHITELABEL §9.2) — hoje só logo_url/primary/secondary existem
+  favicon_url text null,                                      -- favicon do tenant (escopo MVP da IA §2.4; sem coluna até aqui)
+  logo_dark_url text null,                                    -- variante de logo p/ fundo escuro
+  email_reply_to text null,                                   -- reply-to do e-mail transacional white-label (EMAIL_TEMPLATES §dep.2)
+  whitelabel_full boolean not null default false,             -- remoção da marca da plataforma (gated por feature do plano)
+  -- v1.3 (proposta): ativação (ONBOARDING_ACTIVATION §3.2) — estado é DERIVADO; jsonb só p/ itens dispensados/ordem
+  onboarding_state jsonb null,                                -- { dismissed:[...], order:[...] } (opcional; progresso real é derivado)
+  -- v1.3 (proposta, LGPD): contato de privacidade do próprio tenant (COMPLIANCE §dep.6) — cada tenant é Controlador
+  privacy_contact_email text null,
   updated_at timestamptz
 )
 ```
+> **v1.3:** os campos acima são **propostas** vindas dos novos docs; consolidar via migration + ADR (não há
+> coluna hoje além de `logo_url/primary_color/secondary_color`). Sem `favicon_url`/`support_email`, o favicon
+> (MVP) e a fonte de `{support_email}` (NOTIFICATIONS §8) não teriam onde persistir. Booleanos como
+> `whitelabel_full` são consumidos por **injeção no `onRequest`** (ADR-0013), nunca consultados direto pelo
+> use-case. `onboarding_state` é **opcional**: o progresso do checklist é **derivado** de eventos/queries reais
+> via `withTenant`, sem nova tabela (ONBOARDING_ACTIVATION §3.2).
 
 ### 6.11 Control plane — quotas, take rate e recipient da plataforma [MVP]
 ```sql
@@ -559,7 +599,141 @@ tenant 1───1 tenant_settings ; tenant 1───1 affiliate_program_settin
 lessons 1───* live_sessions *───1 users (host) ; live_sessions 1───* live_attendance *───1 users
 live_sessions 1───* live_chat_messages *───1 users ; live_sessions 1───* live_bans *───1 users
 live_sessions 1───* live_recording_events
+support_tickets 1───* support_messages ; support_tickets *───1 users (requester/assignee)   [v1.3, §6.15]
+kb_articles (standalone; índice pg_trgm para busca)                                          [v1.3, §6.15]
+import_jobs 1───* import_rows ; import_jobs/export_jobs *───1 users (created_by/requested_by) [v1.3, §6.16]
 [ control plane ]
 platform.platform_payment_recipients (recipient da plataforma)
 platform.tenants.live_keys_encrypted (keys do LiveKit por tenant; sem FK cross-schema)
+platform.support_tickets (suporte B2B Nível 2; tenant_id sem FK cross-schema)                [v1.3, §6.15]
+platform.audit_log.action (vocabulário canônico do console SA — §6.17)                        [v1.3]
+platform.tenants.{custom_domain_status, custom_domain_verify_token, email_sender_domain}      [v1.3, §6.18]
 ```
+
+### 6.15 Suporte ao aluno — KB e tickets nativos [MVP]
+
+> Origem: [SUPPORT_DISCOVERY_SETTINGS §1/§2](product/SUPPORT_DISCOVERY_SETTINGS.md). **Proposta** a consolidar
+> por migration. Tabelas no **schema do tenant** (Nível 1 — aluno↔tenant), via `withTenant`. O suporte B2B
+> (Nível 2 — tenant↔plataforma) vive em `platform.support_tickets` (control plane), **sem FK cross-schema**.
+> **Build nativo no MVP**; widget externo (Crisp/Intercom) atrás da port `SupportProvider` é **F2** e, por
+> mover dados de aluno para fora do tenant, **exige ADR + revisão LGPD** (OPEN_QUESTIONS #36).
+
+```sql
+support_tickets(
+  id uuid pk, requester_id uuid fk -> users,
+  subject text, status text,             -- open | pending | resolved | closed  (§6.0)
+  priority text not null default 'normal',-- low | normal | high
+  context jsonb null,                     -- { course_id?, order_id?, lesson_id? } (botão "Preciso de ajuda" contextual)
+  assignee_id uuid null fk -> users,
+  created_at timestamptz, updated_at timestamptz, resolved_at timestamptz null
+)
+support_messages(
+  id uuid pk, ticket_id uuid fk -> support_tickets, author_id uuid fk -> users,
+  body text, is_staff boolean,            -- distingue resposta da equipe vs aluno
+  created_at timestamptz
+)
+kb_articles(
+  id uuid pk, slug text unique, category text,
+  title text, body text, status text,     -- draft | published  (§6.0)
+  created_at timestamptz, updated_at timestamptz
+  -- índice GIN/pg_trgm sobre (title, body) p/ busca (§6.0 da busca; ver §6.16-busca abaixo)
+)
+```
+- **Eventos novos** `support_ticket_*` e categoria `support` em `notification_preferences` (NOTIFICATIONS_MATRIX
+  dep. #6) — registrar no enum canônico de eventos em `packages/contracts`.
+- **Busca (`pg_trgm`):** índices GIN/GiST criados nas migrations de cada `tenant_*` **e** ao provisionar novos
+  tenants. FTS `tsvector` PT-BR a confirmar (MVP vs F2). Motor externo (Meilisearch/OpenSearch) exige **ADR** e
+  índice **isolado por tenant** (Regra nº1) — OPEN_QUESTIONS #38.
+- **Isolamento:** PII de tickets/mensagens fora de logs; **teste cross-tenant obrigatório** (tenant A não vê
+  tickets/artigos de B).
+
+### 6.16 Importação / Exportação e portabilidade [MVP base / F2 avançado]
+
+> Origem: [DATA_IMPORT_EXPORT §2.1](product/DATA_IMPORT_EXPORT.md). **Proposta** a consolidar por migration +
+> **ADR "Import/Export & Portabilidade"** (OPEN_QUESTIONS #39). Tabelas no **schema do tenant**, via
+> `withTenant`. Arquivos (origem/relatórios/artefatos) em **Cloudflare R2** sempre sob prefixo `<tenantId>/`,
+> com **URL assinada (TTL curto)** e expiração. MVP cobre **alunos + matrículas + estrutura de curso**;
+> **vídeo/progresso/pedidos históricos e conectores por API são F2**.
+
+```sql
+import_jobs(
+  id uuid pk,
+  kind text,                              -- students | courses | enrollments | progress | orders | videos
+  source_provider text null,              -- hotmart | kiwify | eduzz | teachable | generic_csv
+  status text,                            -- §6.0 (uploaded..done|failed|canceled)
+  source_file_key text,                   -- CSV/ZIP no R2: <tenantId>/imports/<jobId>/source.csv
+  mapping jsonb, options jsonb, totals jsonb,
+  report_file_key text null,              -- relatório de erros (CSV) no R2
+  created_by uuid fk -> users,            -- Owner/Admin
+  created_at, updated_at, finished_at timestamptz null
+)
+import_rows(                              -- 1 linha por registro (idempotência + auditoria do lote)
+  id uuid pk, job_id uuid fk -> import_jobs,
+  row_number int, natural_key text,        -- ex.: lower(trim(email)) | course.slug | (email|course_slug)
+  status text,                            -- §6.0 (valid|invalid|created|updated|skipped|error)
+  errors jsonb null,                       -- [{ field, code, message }]
+  unique(job_id, row_number)
+)
+export_jobs(
+  id uuid pk,
+  scope text,                             -- tenant | student
+  subject_ref text null,                  -- user_id quando scope=student
+  format text,                            -- zip_csv | json
+  status text,                            -- §6.0 (queued|running|ready|expired|failed)
+  artifact_key text null,                 -- R2: <tenantId>/exports/<jobId>/export.zip
+  expires_at timestamptz null,            -- link expira (TTL 24–72h a confirmar)
+  requested_by uuid fk -> users,
+  created_at, finished_at timestamptz null
+)
+```
+- **Idempotência:** `import_jobs.id` é a `idempotency_key` do lote (retoma do checkpoint); a `natural_key` da
+  linha torna a reaplicação no-op (reupload do mesmo CSV após falha parcial → linhas já `created` viram
+  `skipped`). Commit em chunks (~500 linhas/tx).
+- **Validação** via Zod em `packages/contracts` (DRY); **não importamos senhas** (aluno define por link/social).
+- **Esquecimento/offboarding (LGPD):** export gera artefato no R2; o `DROP SCHEMA` do offboarding deve **também**
+  purgar **R2** e **Bunny Library** do tenant (não só o Postgres) — ver COMPLIANCE §dep.4/§9 e OPEN_QUESTIONS #24.
+- **Eventos novos** `import_ready`/`import_done`, `export_ready`, `data_erasure_done` → registrar na
+  NOTIFICATIONS_MATRIX e no enum de eventos.
+- **Isolamento:** prefixo R2 por tenant; nada de chave de export reutilizável entre tenants; **teste cross-tenant
+  obrigatório**.
+
+### 6.17 Control plane — vocabulário de `platform.audit_log.action` [MVP]
+
+> Origem: [SUPER_ADMIN_CONSOLE §15](product/SUPER_ADMIN_CONSOLE.md). **Proposta** a virar **contrato canônico
+> Zod** em `packages/contracts` (DRY), junto com os papéis de SA (`sa_ops | sa_support | sa_billing |
+> sa_owner`). A tabela `platform.audit_log` já existe (§1); aqui se padroniza o domínio do campo `action`
+> (`actor_type='super_admin'`). Toda ação sensível grava `audit_log`; impersonação é **sempre auditada**.
+
+| Domínio | `action` (valores canônicos) | Step-up MFA |
+|---------|------------------------------|-------------|
+| Tenant | `tenant.created` · `tenant.provisioning.retried` · `.smoke_retested` · `.aborted` · `tenant.suspended` · `tenant.reactivated` · `tenant.cancelled` · `tenant.purged` | suspend/cancel/purge |
+| Quota | `quota.override.granted` | — |
+| Impersonação | `tenant.impersonation.started` · `.action` · `.ended` | início |
+| Billing SaaS | `saas.subscription.plan_changed` · `saas.invoice.adjusted` · `saas.billing.credit_granted` · `saas.takerate.override` · `saas.trial.adjusted` | — |
+| Plano | `plan.updated` · `plan.takerate.changed` · `plan.feature_override.set` | sim |
+| Integração | `integration.key.rotated` · `integration.key.revealed` · `integration.reprovisioned` | reveal/reprov |
+| Suporte | `support.note.added` · `support.action.performed` | — |
+| Equipe SA | `super_admin.created` · `.updated` · `.disabled` · `.role_changed` | — |
+
+> Overrides de feature-flag por tenant (piloto/exceção) exigiriam nova tabela/coluna no control plane —
+> decidir MVP vs F2 (SUPER_ADMIN_CONSOLE dep. #3).
+
+### 6.18 Control plane + branding — domínio próprio e e-mail próprio [MVP favicon / F2 domínio]
+
+> Origem: [BRANDING_WHITELABEL §9.2](design/BRANDING_WHITELABEL.md). **Proposta** a consolidar por migration +
+> ADR. Os campos de **branding/white-label** ficam em `tenant_settings` (data plane — ver §6.10); os que
+> **governam roteamento/verificação** ficam em `platform.tenants` (control plane). **Sem FK cross-schema.**
+
+```sql
+-- platform.tenants (control plane) — PROPOSTA (apenas o que governa roteamento/verificação de domínio/e-mail)
+custom_domain_status text null,           -- none | pending | verifying | active | failed  (§6.0)  [F2]
+custom_domain_verify_token text null,     -- TXT de verificação de propriedade do domínio          [F2]
+email_sender_domain text null             -- domínio verificado p/ From próprio (DKIM/SPF) — Pro só após domínio active [F2]
+```
+- **MVP:** apenas `tenant_settings.favicon_url`/`logo_dark_url`/`email_reply_to` (§6.10) — favicon e reply-to
+  white-label. **Domínio próprio + SSL** (ACME na edge) e **e-mail de domínio próprio** são **F2**
+  (engenharia: sessão Better-Auth válida em `slug.app.com` **e** `custom_domain`; 301 ao trocar host).
+- **Booleanos/flags** (`whitelabel_full`, `custom_domain`, `email_sender_domain`) consumidos por **injeção no
+  `onRequest`** (ADR-0013), nunca pelo use-case direto.
+- **MVP de envio de e-mail** = **domínio compartilhado verificado** (From com `{tenant_name}`); domínio próprio
+  por tenant = F2 (OPEN_QUESTIONS #32).

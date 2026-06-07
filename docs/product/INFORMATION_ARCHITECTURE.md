@@ -95,14 +95,20 @@ tenant.app.com (vitrine do tenant, branding próprio)
 │   ├─ /app/comunidade/grupo/{id}
 │   └─ /app/comunidade/eventos ........ Calendário/lives [F2]
 ├─ /app/conquistas .................... Gamificação (pontos/badges/ranking) [F2]
+├─ /app/ajuda ......................... Central de ajuda / Help Center do tenant [MVP] (SUPPORT_DISCOVERY_SETTINGS §1)
+│   ├─ /app/ajuda/artigo/{slug} ...... Artigo da base de conhecimento (kb_articles) [MVP]
+│   ├─ /app/ajuda/contato ............ Formulário de contato → ticket (support_tickets) [MVP]
+│   └─ /app/ajuda/meus-chamados ...... Meus chamados (estado/histórico) [MVP]
 ├─ /app/conta
 │   ├─ /app/conta/perfil .............. Dados, senha, idioma [MVP]
 │   ├─ /app/conta/assinatura .......... Minha assinatura ao conteúdo (cancelar) [MVP]
 │   ├─ /app/conta/compras ............. Histórico de pedidos/recibos [MVP]
 │   ├─ /app/conta/notificacoes ........ Preferências [F2]
-│   └─ /app/conta/privacidade ......... Exportar/excluir meus dados (LGPD) [MVP]
+│   └─ /app/conta/privacidade ......... Exportar/excluir meus dados (LGPD) [MVP] (DATA_IMPORT_EXPORT §7/§9)
 └─ /app/seja-afiliado ................. Vira afiliado (se programa aberto) [MVP]
 ```
+> Botão **"Preciso de ajuda"** contextual no player e em `/app/conta/compras` abre `/app/ajuda/contato`
+> pré-preenchido (curso/pedido) — SUPPORT_DISCOVERY_SETTINGS §1.
 
 ### 2.4 Painel admin/instrutor — `tenant.app.com/manage/*` (auth: owner/admin/instructor)
 
@@ -141,15 +147,26 @@ tenant.app.com (vitrine do tenant, branding próprio)
 │   ├─ /manage/marketing/pixels ....... Meta/GA4 + UTM [MVP]
 │   └─ /manage/marketing/email ........ E-mail/automação + integrações [F2]
 ├─ /manage/analytics .................. Engajamento, conclusão, watch-time [MVP/F2]
+├─ /manage/suporte .................... Suporte ao aluno (Nível 1) [MVP] (SUPPORT_DISCOVERY_SETTINGS §1)
+│   ├─ /manage/suporte/tickets ....... Fila de chamados (open/pending/resolved/closed) [MVP]
+│   ├─ /manage/suporte/ajuda ......... Editor da base de conhecimento (kb_articles) [MVP]
+│   └─ /manage/suporte/plataforma .... Falar com a plataforma (chamado B2B / Nível 2) [MVP/F2]
+├─ /manage/dados ...................... Importação/Exportação de dados [MVP] (DATA_IMPORT_EXPORT)
+│   ├─ /manage/dados/importar ........ Assistente de import (CSV, dry-run, retomável) — wizard 5 passos [MVP]
+│   └─ /manage/dados/exportar ........ Exportar dados do tenant (portabilidade/LGPD) [MVP/F2]
 ├─ /manage/equipe ..................... Membros + convites + papéis [MVP]
 ├─ /manage/integracoes
 │   ├─ /manage/integracoes/webhooks ... Webhooks de saída [MVP]
 │   └─ /manage/integracoes/api ........ Chaves de API por tenant [F2]
 ├─ /manage/configuracoes
-│   ├─ /manage/configuracoes/marca .... Logo, cores, favicon [MVP]
-│   ├─ /manage/configuracoes/dominio .. Subdomínio [MVP] / domínio próprio [F2]
+│   ├─ /manage/configuracoes/geral ... Dados gerais do tenant [MVP] (SUPPORT_DISCOVERY_SETTINGS §3)
+│   ├─ /manage/configuracoes/marca .... Editor de marca: logo, logo-dark, cores, favicon, contraste AA [MVP] (BRANDING_WHITELABEL §4)
+│   ├─ /manage/configuracoes/dominio .. Subdomínio [MVP] / domínio próprio + SSL [F2]
+│   ├─ /manage/configuracoes/suporte .. support_email, canal (nativo/widget), horários [MVP] (novo, §3)
 │   ├─ /manage/configuracoes/pagamentos Conta gateway, split padrão [MVP]
 │   ├─ /manage/configuracoes/idioma ... i18n da interface [F2]
+│   ├─ /manage/configuracoes/privacidade Retenção, deleção de aluno, contato de privacidade [MVP] (novo, LGPD)
+│   ├─ /manage/configuracoes/politicas  Termos/Política/consentimento (versões) [MVP] (novo, COMPLIANCE)
 │   └─ /manage/configuracoes/certificado Template de certificado [MVP/F3]
 └─ /manage/plano-saas ................. Plano/quota do tenant + billing (owner) [MVP]
 ```
@@ -458,5 +475,15 @@ Plataforma / Super-Admin
 8. **Página "Tenant indisponível":** comportamento quando `status='suspended'/'cancelled'` (owner vê billing; demais veem bloqueio) — confirmar copy e fluxo.
 9. **Catálogo público:** confirmar se todo tenant tem vitrine pública (`/cursos`) ou se alguns operam só por landings diretas/links de afiliado (configurável).
 10. **Navegabilidade de API/OpenAPI:** definir se haverá portal de documentação da API pública [F2] sob host/área própria (ex.: `developers.app.com` ou `/manage/integracoes/api/docs`).
+
+11. **Telas novas incorporadas ao sitemap (v1.3 da coordenação):** áreas que os especialistas sinalizaram
+    como ausentes foram adicionadas a §2.3/§2.4 — **Help Center do aluno** (`/app/ajuda*`), **Suporte ao aluno**
+    (`/manage/suporte*`), **Importação/Exportação** (`/manage/dados*`), **editor de marca** detalhado
+    (`/manage/configuracoes/marca`) e os **settings detalhados** (`/configuracoes/{geral,suporte,privacidade,politicas}`).
+    O **console Super-Admin** já estava detalhado em §2.6 e ganhou o vocabulário de auditoria em
+    [DATA_MODEL §6.17](../DATA_MODEL.md). Origem: [SUPPORT_DISCOVERY_SETTINGS](SUPPORT_DISCOVERY_SETTINGS.md),
+    [DATA_IMPORT_EXPORT](DATA_IMPORT_EXPORT.md), [BRANDING_WHITELABEL](../design/BRANDING_WHITELABEL.md),
+    [SUPER_ADMIN_CONSOLE](SUPER_ADMIN_CONSOLE.md). O **inventário de telas (§3)** deve ser estendido com estas
+    entradas na próxima revisão fina (mesmas convenções P/M/W).
 
 > Próximos artefatos sugeridos: mapa de componentes shadcn por tela crítica, especificação de breadcrumbs/estado vazio por área, e a malha de permissões (matriz papel × tela × ação) para alimentar os guards RBAC do Fastify.

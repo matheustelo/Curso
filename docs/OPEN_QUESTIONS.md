@@ -63,6 +63,33 @@ bloqueiam** o início da implementação, mas precisam ser validados/decididos d
 
 ---
 
+## 2-ter. Decisões da integração dos docs de design/produto/ops/legal (rodada 2026-06-07)
+
+> Levantadas ao integrar os 11 novos docs ([docs/design/](design/DESIGN_SYSTEM.md), novos de
+> [docs/product/](product/README.md), [docs/ops/](ops/SECURITY_AND_OPERATIONS.md),
+> [docs/legal/](legal/COMPLIANCE.md)). Resoluções de coordenação no
+> [Relatório de Consistência §4 (itens 28–40)](product/README.md). Defaults adotados; itens abaixo precisam de
+> confirmação ou viram **ADR** quando a decisão estrutural for adotada. **Nenhum bloqueia o MVP.**
+
+| # | Item | Default / encaminhamento | Quem decide |
+|---|------|--------------------------|-------------|
+| 32 | **Domínio de envio de e-mail (MVP vs próprio)** | MVP: **domínio compartilhado verificado** (From `{tenant_name}`, reply-to = `email_reply_to`/`support_email`); domínio próprio por tenant (DKIM/SPF/DMARC) = **F2**, acoplado a domínio próprio `active` | Produto/Eng |
+| 33 | **Severidade da validação de contraste (branding/e-mail)** | Gate **WCAG 2.x** (4,5:1 / 3:1) obrigatório; **aviso brando** geral + **bloqueio duro** só em CTAs de pagamento; APCA = recomendação | Produto/A11y |
+| 34 | **Pipeline de design tokens + `packages/ui`** (Figma↔código) | Recomendação: Style Dictionary + Tokens Studio (JSON W3C) em `packages/ui` (reuso entre surfaces). **Exige ADR** quando adotado | Eng/Design |
+| 35 | **Dark mode exposto ao usuário no MVP** | Chassi suporta por tokens; expor ao usuário no MVP a confirmar (player/checkout/certificado podem forçar light p/ fidelidade de cor) | Produto/Design |
+| 36 | **Build-vs-buy de suporte (Crisp/Intercom)** | MVP **nativo** (KB + tickets, [DATA_MODEL §6.15](DATA_MODEL.md)); widget externo via port `SupportProvider` = F2 → **ADR + revisão LGPD** (dados de aluno saindo do tenant) | Produto/Eng/Jurídico |
+| 37 | **Papéis LGPD Controlador/Operador** | Proposto **tenant = Controlador / plataforma = Operadora** para dados de aluno ([COMPLIANCE §1.1](legal/COMPLIANCE.md)); **bloqueia** redação final de DPA/Política — **validar juridicamente** | Jurídico |
+| 38 | **Motor de busca externo (Meilisearch/OpenSearch)** | MVP usa `pg_trgm` por schema; externo só com critérios objetivos (volume/latência/facetas) → **ADR** + índice **isolado por tenant** (Regra nº1) | Eng |
+| 39 | **Migration/ADR das tabelas novas** | `support_tickets/support_messages/kb_articles`, `import_jobs/import_rows/export_jobs` integradas como proposta ([DATA_MODEL §6.15/§6.16](DATA_MODEL.md)); consolidar via migration + **ADR "Import/Export & Portabilidade"** e contrato Zod (status/`audit_log.action`) | Eng |
+| 40 | **CMP / port de consentimento** (já é #25) | **Referência a #25**: CMP próprio vs terceiro + **port de consentimento** para gating de PostHog/Meta/GA4/Sentry Replay (COMPLIANCE §dep.3) — implementação F2; sem ela, analytics sem consentimento não pode disparar | Produto/Eng |
+
+> **Notas transversais (Regra nº1):** toda tabela nova vive no schema do tenant via `withTenant`, **sem FK
+> cross-schema**; suporte B2B (Nível 2) e `audit_log` ficam em `platform.*`; quotas/limites e flags de
+> white-label são **injetados no `onRequest`** (ADR-0013), nunca consultados pelo use-case; PII de tickets/
+> import fora de logs; **teste de isolamento cross-tenant obrigatório** para cada tabela nova (gate CI).
+
+---
+
 ## 3. Itens explicitamente fora de escopo (decididos)
 
 SCORM/xAPI, SSO/SAML, LTI, marketplace cross-tenant, multi-região, produção de vídeo in-house e

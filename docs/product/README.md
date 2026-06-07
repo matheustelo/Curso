@@ -32,6 +32,16 @@ Filtro de qualidade de toda decisão: **SOLID/DRY/Clean Code** e a **Regra nº1 
 | 11 | [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) | NFRs: performance, segurança, LGPD, a11y (WCAG AA), i18n, confiabilidade. | Reconciliado |
 | 12 | [AUTHORING_UX.md](AUTHORING_UX.md) | UX do Estúdio (autoria): cursos/aulas, editor por tipo, drip, quiz, publicação e **toggles de autoria**. | Reconciliado |
 | 13 | [LIVE_CLASSES.md](LIVE_CLASSES.md) | Aulas ao vivo interativas (sala WebRTC, LiveKit) + gravação→VOD; RBAC, notificações, quotas, analytics, NFR e modelo de dados da feature. **[F2]** | Reconciliado (feature F2 — ver ADR-0015) |
+| 14 | [ONBOARDING_ACTIVATION.md](ONBOARDING_ACTIVATION.md) | Ativação do tenant (checklist/wizard pós-provisionamento), 1º acesso do aluno, retomada, eventos de analytics. | Integrado (estado derivado; sem nova tabela) |
+| 15 | [EMAIL_TEMPLATES.md](EMAIL_TEMPLATES.md) | Catálogo de e-mails transacionais (React Email), white-label por tenant, `event type → template_id`, List-Unsubscribe, i18n. | Integrado (enum canônico em contracts; co-branding control plane) |
+| 16 | [SUPPORT_DISCOVERY_SETTINGS.md](SUPPORT_DISCOVERY_SETTINGS.md) | Suporte ao aluno (KB/tickets nativos), busca/descoberta (`pg_trgm`) e telas de configurações do tenant. | Integrado (tabelas novas → DATA_MODEL §6.15; rotas → IA) |
+| 17 | [SUPER_ADMIN_CONSOLE.md](SUPER_ADMIN_CONSOLE.md) | Console do Super-Admin (control plane): tenants, billing SaaS, impersonação auditada, planos/quotas, vocabulário de `audit_log.action`. | Integrado (vocabulário → DATA_MODEL §6.17; papéis SA = proposta) |
+| 18 | [DATA_IMPORT_EXPORT.md](DATA_IMPORT_EXPORT.md) | Importação (CSV/assistente/dry-run) e exportação/portabilidade + LGPD (esquecimento, purga no offboarding). | Integrado (tabelas novas → DATA_MODEL §6.16; vídeo/conectores = F2) |
+
+> **Design / Ops / Legal (fora desta pasta):** ver [docs/design/](../design/DESIGN_SYSTEM.md) (DESIGN_SYSTEM,
+> WIREFRAMES, UX_WRITING, BRANDING_WHITELABEL), [docs/ops/SECURITY_AND_OPERATIONS.md](../ops/SECURITY_AND_OPERATIONS.md)
+> e [docs/legal/COMPLIANCE.md](../legal/COMPLIANCE.md). Estes docs expandem produto sem contradizê-lo e estão
+> reconciliados nesta mesma rodada (ver §4, itens 28–40).
 
 ### Ordem de leitura recomendada
 1. **Visão** → PRD → USER_JOURNEYS → USER_FLOWS.
@@ -41,6 +51,10 @@ Filtro de qualidade de toda decisão: **SOLID/DRY/Clean Code** e a **Regra nº1 
 5. **Qualidade/execução** → NON_FUNCTIONAL_REQUIREMENTS → USER_STORIES → ROADMAP.
 6. **Decisões** → [ADRs](../adr/) (em especial 0013, 0014, 0015) → OPEN_QUESTIONS.
 7. **Feature F2 (aulas ao vivo)** → [LIVE_CLASSES.md](LIVE_CLASSES.md) (lê após RBAC/NOTIFICATIONS/MONETIZATION/ANALYTICS/NFR/BUSINESS_RULES, pois estende todos eles) + ADR-0015.
+8. **Ativação e crescimento** → [ONBOARDING_ACTIVATION.md](ONBOARDING_ACTIVATION.md) → [EMAIL_TEMPLATES.md](EMAIL_TEMPLATES.md) (lê após NOTIFICATIONS_MATRIX, pois compartilham o enum de eventos) → [SUPPORT_DISCOVERY_SETTINGS.md](SUPPORT_DISCOVERY_SETTINGS.md).
+9. **Operação do SaaS** → [SUPER_ADMIN_CONSOLE.md](SUPER_ADMIN_CONSOLE.md) (control plane) + [DATA_IMPORT_EXPORT.md](DATA_IMPORT_EXPORT.md) + [docs/ops/SECURITY_AND_OPERATIONS.md](../ops/SECURITY_AND_OPERATIONS.md).
+10. **Design & marca** → [docs/design/DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md) → [WIREFRAMES](../design/WIREFRAMES.md) → [UX_WRITING](../design/UX_WRITING.md) → [BRANDING_WHITELABEL](../design/BRANDING_WHITELABEL.md).
+11. **Jurídico** → [docs/legal/COMPLIANCE.md](../legal/COMPLIANCE.md) (lê com OPEN_QUESTIONS #24/#25/#32+).
 
 ---
 
@@ -142,6 +156,20 @@ RBAC, USER_STORIES, BUSINESS_RULES) — **sem divergência**.
 | 26 | Onboarding de pagamentos do tenant (recipient/KYC) | Passo de "ativar pagamentos" pós-onboarding (não bloqueia provisionamento); sem recipient válido → checkout indisponível. | ✅ Resolvido |
 | 27 | Aula ao vivo: embed (Zoom/YouTube) × sala WebRTC nativa interativa | Evoluída para **sala WebRTC nativa interativa com gravação→VOD (F2)** atrás da port `LiveProvider` ([ADR-0015](../adr/0015-live-classes-interactive.md), [LIVE_CLASSES.md](LIVE_CLASSES.md)); embed simples permanece como degradação/alternativa. Live = **F2**. Keys LiveKit por tenant cifradas no control plane (`platform.tenants.live_keys_encrypted`); 1 projeto LiveKit por tenant. Sem Redis (ADR-0011 intacto). Valores de quota = stakeholder (OPEN_QUESTIONS #10). | ✅ Reconciliado / ⏳ valores de quota |
 
+| 28 | **Design System inexistente** (wireframes referenciavam `‹DS:…›` sem doc) | Produzido [DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md): tokens semânticos, componentes shadcn/Radix, estados a11y obrigatórios. Tokens sobrescrevíveis pelo tenant no MVP = `--color-primary` + `--radius` + logo (superfícies via paletas pré-aprovadas, F2). | ✅ Resolvido / ⏳ subconjunto exato e dark-mode exposto |
+| 29 | **Pipeline de design tokens e `packages/ui`** (Figma↔código) | Recomendação: Style Dictionary + Tokens Studio sobre JSON W3C, morando em `packages/ui` (reuso entre surfaces). **Decisão estrutural → exige ADR** quando adotada (OQ #34). | ⏳ ADR (eng/design) |
+| 30 | **Validação de contraste do branding** (BRANDING/EMAIL/DESIGN) | Gate canônico **WCAG 2.x** (4,5:1 / 3:1); APCA só como recomendação. Severidade: aviso brando geral + bloqueio duro em CTAs de pagamento (OQ #33). Mesma regra de fallback de cor para o botão de CTA em e-mail. | ✅ Default / ⏳ severidade |
+| 31 | **Campos de branding/white-label/domínio ausentes no DATA_MODEL** | Integrados como proposta rastreável: `tenant_settings` (`favicon_url`, `logo_dark_url`, `email_reply_to`, `whitelabel_full`) e `platform.tenants` (`custom_domain_status`, `custom_domain_verify_token`, `email_sender_domain`) — [DATA_MODEL §6.10/§6.18](../DATA_MODEL.md). Sem isso o favicon (MVP) e o reply-to/suporte de e-mail não têm onde persistir. | ✅ Integrado (proposta) / ⏳ ADR de migration |
+| 32 | **Domínio de envio de e-mail (MVP vs próprio)** | MVP: **domínio compartilhado verificado** (From com `{tenant_name}`, reply-to = `email_reply_to`/`support_email`); **domínio próprio por tenant** (DKIM/SPF/DMARC) = F2, acoplado a domínio próprio ativo. | ✅ Default / ⏳ confirmar |
+| 33 | **Catálogo de eventos ↔ templates de e-mail** | **Enum único** `event type → template_id` em `packages/contracts` (DRY entre e-mail, in-app e webhooks) — alinhado a NOTIFICATIONS_MATRIX dep. #6. PDFs (certificado/boleto) **linkados** por URL assinada, não anexados. | ✅ Resolvido |
+| 34 | **Onboarding/ativação — persistência do checklist** | Estado **derivado** de eventos/queries reais (curso publicado? recipient ativo? 1ª venda?) via `withTenant`, **sem nova tabela**; itens dispensados/ordem em `tenant_settings.onboarding_state jsonb` se necessário. Wizard leve no 1º acesso + checklist persistente. | ✅ Resolvido (derivado) |
+| 35 | **Suporte ao aluno (Nível 1) sem modelo** | Tabelas novas no schema do tenant: `support_tickets`, `support_messages`, `kb_articles` ([DATA_MODEL §6.15](../DATA_MODEL.md)); `support_tickets.status` (`open\|pending\|resolved\|closed`) no vocabulário canônico §6.0. Suporte B2B (Nível 2) em `platform.*` **sem FK cross-schema**. Build nativo no MVP; Crisp/Intercom via port `SupportProvider` = F2 + ADR (OQ #36). | ✅ Integrado / ⏳ ADR provider |
+| 36 | **Settings do tenant (suporte/marca/privacidade)** | Novos campos em `tenant_settings`: `support_email`, `support_channel`, `support_widget_config jsonb` ([DATA_MODEL §6.10](../DATA_MODEL.md)); o placeholder `{support_email}` da NOTIFICATIONS §8 passa a ter coluna-fonte (fallback = e-mail do owner). | ✅ Resolvido |
+| 37 | **Busca/descoberta** | MVP: `pg_trgm` (índices GIN/GiST) **por schema** de tenant, criados nas migrations e ao provisionar; FTS `tsvector` PT-BR a confirmar. Motor externo (Meilisearch/OpenSearch) **exige ADR** + índice isolado por tenant (Regra nº1) — OQ #38. | ✅ Default / ⏳ ADR se externo |
+| 38 | **Import/Export & portabilidade sem modelo** | Tabelas novas no schema do tenant: `import_jobs`, `import_rows`, `export_jobs` ([DATA_MODEL §6.16](../DATA_MODEL.md)) com idempotência por lote/linha; arquivos em R2 sob prefixo `<tenantId>/`. MVP = alunos + matrículas + estrutura de curso; vídeo/progresso/pedidos e conectores por API = F2. Purga de R2/Bunny no offboarding (`DROP SCHEMA`). | ✅ Integrado / ⏳ ADR Import/Export |
+| 39 | **Vocabulário de `audit_log.action` (console SA)** | Integrado como proposta canônica em [DATA_MODEL §6.17](../DATA_MODEL.md); vira contrato Zod em `packages/contracts` junto com os papéis de SA (`sa_ops/sa_support/sa_billing/sa_owner`). Impersonação sempre auditada; step-up MFA em ações sensíveis. | ✅ Integrado (proposta) |
+| 40 | **LGPD: papéis, retenção, CMP, esquecimento** | [COMPLIANCE.md](../legal/COMPLIANCE.md): enquadramento proposto **tenant = Controlador / plataforma = Operadora** (a validar juridicamente — OQ #37); prazos de retenção e janela win-back (OQ #24); CMP próprio vs terceiro (OQ #25) com port de consentimento para gating de analytics; campo de contato de privacidade por tenant em `tenant_settings`. | ⏳ Jurídico (#24/#25/#37) |
+
 **Legenda:** ✅ resolvido pela coordenação · ⏳ aguarda stakeholder/engenharia/jurídico (não bloqueia MVP).
 
 ---
@@ -163,26 +191,37 @@ Itens com **default seguro** já aplicado (podem seguir no MVP e ser revisados):
 - ✅ **UX de Autoria/Instrutor** (Studio): produzido em [AUTHORING_UX.md](AUTHORING_UX.md) — toggles de
   conclusão manual de vídeo, ligar/desligar comentários, exibir gabarito, aulas opcionais, política de
   tentativas/nota (campos a consolidar no DATA_MODEL §6 com a coordenação).
-- **Wireframes** de telas críticas (Checkout, Player, Editor de curso, Console Super-Admin).
-- **Schemas Zod em `packages/contracts`** para os fluxos/eventos (tracking plan, DTOs) — fonte única.
-- **Tabela legal** de retenção/LGPD (`docs/legal/`).
+- ✅ **Wireframes** de telas críticas: produzido em [docs/design/WIREFRAMES.md](../design/WIREFRAMES.md)
+  (Checkout, Player, Editor de curso, Console Super-Admin etc.), apoiado pelo [DESIGN_SYSTEM.md](../design/DESIGN_SYSTEM.md).
+- **Schemas Zod em `packages/contracts`** para os fluxos/eventos (tracking plan, DTOs, enum `event type →
+  template_id`, vocabulário de `audit_log.action`, status de ticket) — fonte única.
+- ✅ **Tabela legal** de retenção/LGPD: produzida em [docs/legal/COMPLIANCE.md](../legal/COMPLIANCE.md)
+  (prazos a fechar com jurídico — OQ #24).
+- ✅ **Segurança & operações** (backups/PITR, KMS, CSP, DR): produzido em
+  [docs/ops/SECURITY_AND_OPERATIONS.md](../ops/SECURITY_AND_OPERATIONS.md).
 
 ---
 
 ## 7. Nível de confiança global
 
-**~90%** para o conjunto reconciliado.
+**~89%** para o conjunto reconciliado (mantido após integrar os 11 novos docs de design/produto/ops/legal;
+a leve diminuição reflete novas superfícies — suporte, import/export, white-label/domínio, LGPD — cujas
+**estruturas** estão fechadas mas dependem de ADRs de migration e de validação jurídica).
 
 | Dimensão | Confiança | Observação |
 |----------|-----------|------------|
-| Isolamento/multitenancy (Regra nº1) | 90% | Nenhuma decisão de produto a violou; quotas e take rate resolvidos sem FK cross-schema. |
-| Modelo de dados (com §6) | 87% | Extensões fechadas; restam valores comerciais (quotas/preços). |
+| Isolamento/multitenancy (Regra nº1) | 90% | Nenhuma decisão de produto a violou; quotas, take rate, suporte, import/export e busca resolvidos sem FK cross-schema; tabelas novas exigem teste de isolamento (gate CI). |
+| Modelo de dados (com §6) | 85% | Extensões fechadas; tabelas novas (suporte/import/export) e campos de branding integrados como **proposta rastreável** (DATA_MODEL §6.15–§6.18, v1.3) pendentes de migration/ADR; restam valores comerciais. |
 | Pagamentos (SaaS × aluno) | 88% | Consistente; pendências são políticas (grace/reembolso parcial), não estruturais. |
-| RBAC | 85% | Papéis fixos no MVP; delegação fina e papéis múltiplos adiados. |
-| Analytics/tracking plan | 84% | Port + Zod definidos; fee sobre GMV em aberto. |
-| Notificações | 88% | MVP in-app+e-mail; push F2. |
-| IA/Hosts/Autoria | 80% | Hosts = proposta a validar; doc de autoria a produzir. |
+| RBAC | 84% | Papéis fixos no MVP; delegação fina e papéis múltiplos adiados; papéis de SA (`sa_*`) = proposta a canonizar. |
+| Analytics/tracking plan | 84% | Port + Zod definidos; eventos de onboarding/import/suporte a adicionar ao plano; fee sobre GMV em aberto. |
+| Notificações/E-mail | 87% | MVP in-app+e-mail; enum `event→template_id` único; eventos de suporte/import a registrar; push F2. |
+| Design system / white-label | 80% | DS produzido (tokens/a11y AA); pipeline de tokens + `packages/ui` e severidade de contraste = ADR/decisão. |
+| IA/Hosts/Autoria | 80% | Hosts = proposta a validar; rotas novas (ajuda/suporte/configurações) incorporadas à IA. |
+| LGPD/Compliance | 78% | Estrutura completa; papéis Controlador/Operador, prazos de retenção e CMP pendentes de jurídico/produto. |
 
-Os ~10% residuais concentram-se em **decisões comerciais/jurídicas** (valores de plano, prazos LGPD,
-fee sobre GMV) e **validações de engenharia** (hosts/cookies), nenhuma das quais bloqueia o início da
+Os ~11% residuais concentram-se em **decisões comerciais/jurídicas** (valores de plano, prazos LGPD,
+fee sobre GMV, papéis Controlador/Operador, CMP), **decisões estruturais que exigirão ADR** (provider de
+suporte, motor de busca externo, pipeline de tokens/`packages/ui`, migration de import/export) e
+**validações de engenharia** (hosts/cookies, domínio próprio/SSL), nenhuma das quais bloqueia o início da
 implementação do MVP.
